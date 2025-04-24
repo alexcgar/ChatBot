@@ -1,0 +1,510 @@
+{
+  "questions": [
+    {
+      "id": "nueva_oferta",
+      "text": "¿Deseas hacer una nueva oferta con los datos de esta?",
+      "type": "select",
+      "options": ["Sí", "No"],
+      "next": "oportunidad"
+    },
+    {
+      "id": "oportunidad",
+      "text": "Por favor, describe brevemente la oportunidad.",
+      "type": "input",
+      "inputType": "text",
+      "placeholder": "Describe la oportunidad aquí",
+      "next": "tipo_oferta"
+    },
+    {
+      "id": "tipo_oferta",
+      "text": "¿Qué tipo de oferta deseas?",
+      "type": "select",
+      "options": ["Estimada", "Estudio por dpto. técnico"],
+      "next": "idioma_preferido"
+    },
+    {
+      "id": "idioma_preferido",
+      "text": "¿En qué idioma prefieres continuar?",
+      "type": "select",
+      "options": ["Español", "Inglés", "Francés", "Portugués", "Mexicano"],
+      "next": "referencia"
+    },
+    {
+      "id": "referencia",
+      "text": "Por favor, proporciona una referencia.",
+      "type": "input",
+      "inputType": "text",
+      "placeholder": "Introduce tu referencia aquí",
+      "next": "destino"
+    },
+    {
+      "id": "destino",
+      "text": "¿Cuál es el destino?",
+      "type": "input",
+      "inputType": "text",
+      "placeholder": "Introduce el destino aquí",
+      "next": "coordenadas_finca"
+    },
+    {
+      "id": "coordenadas_finca",
+      "text": "Por favor, proporciona las coordenadas de la finca.",
+      "type": "input",
+      "inputType": "text",
+      "placeholder": "Introduce la latitud y longitud separadas por una coma",
+      "next": "pais_mas_cercano"
+    },
+    {
+      "id": "pais_mas_cercano",
+      "text": "¿Cuál es el país más cercano a ti?",
+      "type": "select",
+      "options": ["España"],
+      "next": "provincia_cercana"
+    },
+    {
+      "id": "provincia_cercana",
+      "text": "¿Cuál es la provincia más cercana a ti?",
+      "type": "select",
+      "options": [
+        "Álava", "Albacete", "Alicante", "Almería", "Asturias", "Ávila", "Badajoz",
+        "Baleares", "Barcelona", "Burgos", "Cáceres", "Cádiz", "Cantabria",
+        "Castellón", "Ciudad Real", "Córdoba", "La Coruña", "Cuenca", "Gerona",
+        "Granada", "Guadalajara", "Gipuzkoa", "Huelva", "Huesca", "Jaén", "León",
+        "Lérida", "La Rioja", "Lugo", "Madrid", "Málaga", "Murcia", "Navarra",
+        "Orense", "Palencia", "Las Palmas", "Pontevedra", "Salamanca",
+        "Santa Cruz de Tenerife", "Segovia", "Sevilla", "Soria", "Tarragona",
+        "Teruel", "Toledo", "Valencia", "Valladolid", "Vizcaya", "Zamora", "Zaragoza"
+      ],
+      "next": "tipo_instalacion"
+    },
+    {
+      "id": "tipo_instalacion",
+      "text": "¿Estás interesado en adquirir un invernadero o una nave?",
+      "type": "select",
+      "options": ["Invernadero", "Nave", "Ninguno"],
+      "next": {
+        "Invernadero": "tipo_arco",
+        "Nave": "modelo_arco",
+        "Ninguno": "end_gracias"
+      }
+    },
+    {
+      "id": "tipo_arco",
+      "text": "¿Qué tipo de arco prefieres para el invernadero?",
+      "type": "select",
+      "options": [
+        {
+          "label": "APC80S (CAPILLA 8 M ESTANDAR)",
+          "value": "APC80S"
+        },
+        {
+          "label": "APC96S (CAPILLA 9,6 M ESTANDAR)",
+          "value": "APC96S"
+        },
+        {
+          "label": "APG80S (GOTICO 8 M ESTANDAR)",
+          "value": "APG80S"
+        },
+        {
+          "label": "APG80R (GOTICO 8 M REFORZADO)",
+          "value": "APG80R"
+        },
+        {
+          "label": "APG80P (GOTICO 8 M POLAR)",
+          "value": "APG80P"
+        },
+        {
+          "label": "APG96S (GOTICO 9,6 M ESTANDAR)",
+          "value": "APG96S"
+        },
+        {
+          "label": "APG96R (GOTICO 9,6 M REFORZADO)",
+          "value": "APG96R"
+        },
+        {
+          "label": "APG96P (GOTICO 9,6 M POLAR)",
+          "value": "APG96P"
+        },
+        {
+          "label": "APG96P3 (GOTICO 9,6 M POLAR A 3M)",
+          "value": "APG96P3"
+        },
+        {
+          "label": "aprLUX96 (GOTICO 9,6 M LUX)",
+          "value": "aprLUX96"
+        },
+        {
+          "label": "aprLUX128 (GOTICO 12,8 M LUX)",
+          "value": "aprLUX128"
+        },
+        {
+          "label": "APW96 (DOS AGUAS 9,6 M)",
+          "value": "APW96"
+        },
+        {
+          "label": "APW128 (DOS AGUAS 12,8 M)",
+          "value": "APW128"
+        },
+        {
+          "label": "APA25 (ASIMETRICO TROPICAL 9,6 M)",
+          "value": "APA25"
+        },
+        {
+          "label": "OTRO",
+          "value": "OTRO"
+        }
+      ],
+      "next": "numero_capillas"
+    },
+   
+    
+    {
+      "id": "largo_invernadero",
+      "text": "¿Qué largo prefieres para el invernadero?",
+      "type": "input",
+      "inputType": "number",
+      "placeholder": "Introduce el largo en metros",
+      "next": "numero_capillas"
+    },
+    {
+      "id": "numero_capillas",
+      "text": "¿Cuántas capillas prefieres para el invernadero?",
+      "type": "input",
+      "inputType": "number",
+      "placeholder": "Introduce el número de capillas",
+      "next": "altura_canal"
+    },
+    {
+      "id": "altura_canal",
+      "text": "¿Qué altura bajo canal prefieres para el invernadero?",
+      "type": "input",
+      "inputType": "number",
+      "placeholder": "Introduce la altura en metros",
+      "next": "cimentacion"
+    },
+    {
+      "id": "cimentacion",
+      "text": "¿Qué tipo de cimentación prefieres?",
+      "type": "select",
+      "options": [
+      {
+        "label": "CIMENTACION POR PILAR FUNDIDO",
+        "value": "Pilar fundido"
+      },
+      {
+        "label": "CIMENTACION POR PREPOSTE",
+        "value": "Preposte"
+      }
+      ],
+      "next": "pilares_frontales"
+    },
+    {
+      "id": "pilares_frontales",
+      "text": "¿Qué tipo de pilares frontales prefieres?",
+      "type": "select",
+      "options": [
+      "80x80x3 mm",
+      "100x100x3 mm",
+      "140x80x3 mm",
+      "140x80x4 mm",
+      "Otro"
+      ],
+      "next": "pilares_laterales"
+    },
+    {
+      "id": "pilares_laterales",
+      "text": "¿Qué tipo de pilares laterales prefieres?",
+      "type": "select",
+      "options": [
+      {
+        "label": "80x80x3 mm",
+        "value": "80x80x3 mm"
+      },
+      {
+        "label": "100x100x3 mm",
+        "value": "100x100x3 mm"
+      },
+      {
+        "label": "80x80x2 mm",
+        "value": "80x80x2 mm"
+      }
+      ],
+      "next": "pilares_centrales"
+    },
+    {
+      "id": "pilares_centrales",
+      "text": "¿Qué tipo de pilares centrales prefieres?",
+      "type": "select",
+      "options": [
+      {
+        "label": "80x80x2 mm",
+        "value": "80x80x2 mm"
+      },
+      {
+        "label": "100x100x2 mm",
+        "value": "100x100x2 mm"
+      },
+      {
+        "label": "80x80x3 mm",
+        "value": "80x80x3 mm"
+      },
+      {
+        "label": "100x100x3 mm",
+        "value": "100x100x3 mm"
+      }
+      ],
+      "next": "galvanizado_pilares"
+    },
+    {
+      "id": "galvanizado_pilares",
+      "text": "¿Qué tipo de galvanizado prefieres para los pilares?",
+      "type": "select",
+      "options": [
+      {
+      "label": "GALVANIZADO EN CALIENTE",
+      "value": "GALVANIZADO EN CALIENTE"
+      },
+      {
+      "label": "GALVANIZADO Z-275",
+      "value": "GALVANIZADO Z-275"
+      }
+      ],
+      "next": "observaciones_pilares"
+    },
+    {
+      "id": "observaciones_pilares",
+      "text": "¿Tienes observaciones adicionales sobre los pilares?",
+      "type": "input",
+      "inputType": "text",
+      "placeholder": "Escribe tus observaciones aquí",
+      "next": "galvanizado_canales"
+    },
+    {
+      "id": "galvanizado_canales",
+      "text": "¿Qué tipo de galvanizado prefieres para los canales?",
+      "type": "select",
+      "options": [
+      {
+        "label": "Z-275",
+        "value": "Z-275"
+      },
+      {
+        "label": "Z-450",
+        "value": "Z-450"
+      },
+      {
+        "label": "ZM - MAGNELIS",
+        "value": "ZM - MAGNELIS"
+      }
+      ],
+      "next": "tratamiento_anticaidas_laterales"
+    },
+    {
+      "id": "tratamiento_anticaidas_laterales",
+      "text": "¿Deseas tratamiento anticaídas laterales?",
+      "type": "select",
+      "options": [
+      "ANTICAIDAS LATERALES",
+      "ANTICAIDAS LATERALES CERTIFICADAS",
+      "NO INCLUIDO"
+      ],
+      "next": "lineas_vida_canales"
+    },
+    {
+      "id": "lineas_vida_canales",
+      "text": "¿Qué tipo de líneas de vida en canales prefieres?",
+      "type": "select",
+      "options": [
+      "LINEAS DE VIDA EN CANALES",
+      "LINEAS DE VIDA CERTIFICADAS EN CANALES",
+      "NO INCLUIDO"
+      ],
+      "next": "opciones_canales"
+    },
+    {
+      "id": "opciones_canales",
+      "text": "¿Qué opciones prefieres para los canales?",
+      "type": "select",
+      "options": [
+      "ESPESOR EN 2,5 mm",
+      "CANAL ANTICONDENSACION",
+      "ESCALERA CON JAULA PARA SUBIR A CANALES"
+      ],
+      "next": "pendiente_invernadero"
+    },
+    {
+      "id": "pendiente_invernadero",
+      "text": "¿Qué pendiente prefieres para el invernadero?",
+      "type": "select",
+      "options": [
+      {
+        "label": "UN AGUA",
+        "value": "UN AGUA"
+      },
+      {
+        "label": "DOS AGUAS",
+        "value": "DOS AGUAS"
+      }
+      ],
+      "next": "emparrillado"
+    },
+    {
+      "id": "emparrillado",
+      "text": "¿Qué tipo de emparrillado prefieres?",
+      "type": "select",
+      "options": [
+      {
+        "label": "NO INCLUIDO",
+        "value": "NO INCLUIDO"
+      },
+      {
+        "label": "DE FRONTAL A FRONTAL",
+        "value": "DE FRONTAL A FRONTAL"
+      },
+      {
+        "label": "DE LATERAL A LATERAL",
+        "value": "DE LATERAL A LATERAL"
+      }
+      ],
+      "next": "end_gracias"
+    },
+    {
+      "id": "espaciado_lineas",
+      "text": "¿Qué espaciado prefieres entre las líneas?",
+      "type": "input",
+      "inputType": "number",
+      "placeholder": "Introduce el espaciado en metros",
+      "next": "end_gracias"
+    },
+  {
+    "id": "tipo_correa",
+    "text": "¿Qué tipo de correa prefieres?",
+    "type": "select",
+    "options": [
+      {
+        "label": "PERFIL H",
+        "value": "PERFIL H"
+      },
+      {
+        "label": "PERFIL H ZIGZAG",
+        "value": "PERFIL H ZIGZAG"
+      }
+    ],
+    "next": "calidad_cumbrera"
+  },
+  {
+    "id": "calidad_cumbrera",
+    "text": "¿Qué calidad prefieres para la cumbrera?",
+    "type": "select",
+    "options": [
+      {
+        "label": "ZM-MAGNELS",
+        "value": "ZM-MAGNELS"
+      },
+      {
+        "label": "Z-450",
+        "value": "Z-450"
+      },
+      {
+        "label": "Z-275",
+        "value": "Z-275"
+      }
+    ],
+    "next": "calidad_lateral"
+  },
+  {
+    "id": "calidad_lateral",
+    "text": "¿Qué calidad prefieres para los laterales?",
+    "type": "select",
+    "options": [
+      {
+        "label": "ZM-MAGNELS",
+        "value": "ZM-MAGNELS"
+      },
+      {
+        "label": "Z-450",
+        "value": "Z-450"
+      },
+      {
+        "label": "Z-275",
+        "value": "Z-275"
+      }
+    ],
+    "next": "calidad_frontal"
+  },
+  {
+    "id": "calidad_frontal",
+    "text": "¿Qué calidad prefieres para los frontales?",
+    "type": "select",
+    "options": [
+      {
+        "label": "ZM-MAGNELS",
+        "value": "ZM-MAGNELS"
+      },
+      {
+        "label": "Z-450",
+        "value": "Z-450"
+      },
+      {
+        "label": "Z-275",
+        "value": "Z-275"
+      }
+    ],
+    "next": "calidad_canales"
+  },
+  {
+    "id": "calidad_canales",
+    "text": "¿Qué calidad prefieres para los canales?",
+    "type": "select",
+    "options": [
+      {
+        "label": "ZM-MAGNELS",
+        "value": "ZM-MAGNELS"
+      },
+      {
+        "label": "Z-450",
+        "value": "Z-450"
+      },
+      {
+        "label": "Z-275",
+        "value": "Z-275"
+      }
+    ],
+    "next": "calidad_ventana_cenital"
+  },
+  {
+    "id": "calidad_ventana_cenital",
+    "text": "¿Qué calidad prefieres para la ventana cenital?",
+    "type": "select",
+    "options": [
+      {
+        "label": "ZM-MAGNELS",
+        "value": "ZM-MAGNELS"
+      },
+      {
+        "label": "Z-450",
+        "value": "Z-450"
+      },
+      {
+        "label": "Z-275",
+        "value": "Z-275"
+      }
+    ],
+    "next": "observaciones_correas"
+  },
+  {
+    "id": "observaciones_correas",
+    "text": "¿Tienes observaciones adicionales sobre las correas?",
+    "type": "input",
+    "inputType": "text",
+    "placeholder": "Escribe tus observaciones aquí",
+    "next": "end_gracias"
+  },
+  
+  {
+    "id": "end_gracias",
+    "text": "Gracias por completar el formulario. Nos pondremos en contacto contigo pronto.",
+    "type": "info",
+    "end": true
+  }
+  ]
+}

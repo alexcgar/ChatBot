@@ -1,0 +1,310 @@
+.chatbot-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: var(--spacing);
+  background-color: var(--background-color);
+}
+
+.chatbot-main-container {
+  max-width: 1500px;
+  width: 100%;
+}
+
+.summary-card,
+.chat-card {
+  height: calc(100vh - 50px);
+  display: flex;
+  flex-direction: column;
+  background-color: var(--card-background);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  overflow: hidden;
+  margin-bottom: 0;
+  border: 1px solid var(--border-color);
+  transition: box-shadow var(--transition-duration);
+}
+
+.summary-card:hover,
+.chat-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+  font-weight: 500;
+  font-size: 1.6rem;
+  border-bottom: none;
+  padding: 1.3rem var(--spacing);
+  flex-shrink: 0;
+  color: rgba(221, 220, 220, 0)!important;
+  background-color: #1323b6a1!important;
+  margin-left: 20;
+}
+
+.summary-card-body,
+.chat-card-body {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 2rem ;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--card-background);
+}
+
+.chat-card-body {
+  padding: 0;
+}
+
+/* Estilos para el área de mensajes */
+.chat-messages-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  background-color: #fff;
+}
+
+/* Estilo base para todos los mensajes */
+.message {
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+/* Alineación para mensajes del bot (izquierda) */
+.message.bot {
+  background-color: #e9ecef;
+  text-align: left;
+}
+
+/* Alineación para mensajes del usuario (derecha) */
+.message.user {
+  background-color: #007bff;
+  color: #fff;
+  text-align: right;
+}
+
+/* Estilo para mensaje de carga */
+.message.auto-filled {
+  opacity: 0.8;
+  font-style: italic;
+}
+
+.current-question-text {
+  background-color: #e9f0f7;
+  color: var(--text-color);
+  padding: 32px 18px;
+  border-radius: 18px;
+  margin-bottom: 0;
+  max-width: 100%;
+  align-self: flex-start;
+  border: none;
+  line-height: 1.5;
+}
+
+
+
+.chat-input-area {
+  display: flex;
+  padding: 10px;
+  border-top: 1px solid #ddd;
+  background-color: #f8f9fa;
+  align-items: stretch;  /* Asegura que el input y el button estiren su altura para ocupar todo el espacio disponible */
+}
+
+.chat-input-area input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-right: 270px;
+  height: 100%; /* Asegura que el input ocupe toda la altura disponible del contenedor */
+}
+.chat-input-area button {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  height: 100%; /* Asegura que el botón ocupe toda la altura disponible del contenedor */
+}
+/* Styling for summary items */
+.summary-item {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f0f2f5;
+  /* Ensure it takes full width of its container */
+  width: 100%;
+}
+
+.summary-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.summary-item strong {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: #4a69bd;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.summary-item p {
+  margin-bottom: 0.5rem; /* Add some space below the answer */
+  color: #495057;
+  font-size: 1rem;
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+/* Styling for the added greenhouse details */
+.invernadero-details {
+  background-color: #f8f9fa;
+  padding: 1rem; /* Increased padding */
+  border-radius: 8px; /* Slightly larger radius */
+  border: 1px solid #e9ecef;
+  margin-top: 0.75rem;
+  /* Allow it to take full width */
+  width: 100%;
+  box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+/* Use a more structured layout within details, maybe grid or flex */
+.invernadero-details small {
+  display: grid; /* Use grid for alignment */
+  grid-template-columns: auto 1fr; /* Label column auto, value column takes rest */
+  gap: 0.3rem 0.8rem; /* Row gap and column gap */
+  line-height: 1.5; /* Adjust line height */
+  color: #333;
+}
+
+.invernadero-details strong {
+  /* Style for the labels (Tipo:, Ancho Capilla:, etc.) */
+  grid-column: 1 / 2; /* Place in the first column */
+  color: #555;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-align: right; /* Align labels to the right */
+}
+
+/* Style for the values */
+.invernadero-details small > span { /* Target the value spans directly if needed, or just let text flow */
+    grid-column: 2 / 3; /* Place in the second column */
+    word-break: break-word; /* Break long words if necessary */
+}
+
+/* Ensure the image container also behaves well */
+.invernadero-details .mt-2 { /* Target the div containing the image */
+    grid-column: 1 / -1; /* Make image span both columns */
+    text-align: center; /* Center the image */
+    margin-top: 0.5rem; /* Add some space above the image */
+}
+
+.invernadero-details img {
+    max-height: 150px; /* Keep max height */
+    max-width: 100%; /* Ensure image is responsive */
+    height: auto; /* Maintain aspect ratio */
+    border-radius: 6px; /* Rounded corners for image */
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: var(--primary-color);
+}
+
+.final-data-pre {
+  background-color: #f8f9fa;
+  color: #343a40;
+  padding: 1.5rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 0.9em;
+  line-height: 1.7;
+  border: 1px solid var(--border-color);
+  margin-top: 1rem;
+}
+
+.chat-input-area .btn {
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-weight: 500;
+  transition: background-color var(--transition-duration), color var(--transition-duration);
+}
+
+.chat-input-area .btn-outline-primary {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.chat-input-area .btn-outline-primary:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.chat-input-area .btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.chat-input-area .btn-primary:hover {
+  background-color: #3b569a;
+  border-color: #3b569a;
+}
+
+@media (max-width: 768px) {
+  .chatbot-wrapper {
+    padding: 15px;
+  }
+
+  .summary-card,
+  .chat-card {
+    height: calc(100vh - 30px - 20px);
+    margin-bottom: 20px;
+  }
+
+  .summary-card:last-child,
+  .chat-card:last-child {
+    margin-bottom: 0;
+  }
+
+  .card-header {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+
+  .summary-card-body,
+  .chat-card-body,
+  .chat-messages-area,
+  .chat-input-area {
+    padding: 1rem;
+  }
+}
+
+.summary-card-body::-webkit-scrollbar,
+.chat-messages-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.summary-card-body::-webkit-scrollbar-track,
+.chat-messages-area::-webkit-scrollbar-track {
+  background: #f8f9fa;
+  border-radius: 10px;
+}
+
+.summary-card-body::-webkit-scrollbar-thumb,
+.chat-messages-area::-webkit-scrollbar-thumb {
+  background-color: #cdd2d9;
+  border-radius: 10px;
+  border: 2px solid #f8f9fa;
+}
+
+.summary-card-body::-webkit-scrollbar-thumb:hover,
+.chat-messages-area::-webkit-scrollbar-thumb:hover {
+  background-color: #b4bac2;
+}
