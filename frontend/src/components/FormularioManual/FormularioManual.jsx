@@ -1,414 +1,391 @@
-import React, { useState, useEffect } from 'react';
-import { API_BASE_URL } from '../../config';
-import './FormularioManual.css'; // Import CSS for styling
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import './FormularioManual.css';
+import { fetchPreguntas, enviarRespuestas } from '../../services/api';
 
-// Modificar el componente para aceptar props
-const FormularioManual = ({ formData = {}, onFormChange, readOnly = false }) => {
-  // Estado local para manejar los datos del formulario
+// // --- BLOQUE DE REGLAS DE DEPENDENCIA (puedes añadir más conjuntos aquí) ---
+// const dependencyRules = {
+//   // Invernaderos
+//   "a3c6c678-3a65-495e-b36f-f345ca8e1af4": {
+//     "*": { showQuestions: { fromOrder: 7, toOrder: 57 } }
+//   },
+//   // Tipos de riego
+//   "1b580d4e-d2c2-4845-9ac3-7bdd643a4667": {
+//     "*": { showQuestions: { fromOrder: 67, toOrder: 97 } }
+//   }
+// };
+
+function FormularioManual({ formData = {}, onFormChange }) {
   const [localFormData, setLocalFormData] = useState(formData);
   const [questions, setQuestions] = useState([]);
+  const [answers, setAnswers] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [submitted, setSubmitted] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
-  // Sincronizar cuando cambien las props de formData
+  // Sincronizar con los datos externos cuando cambien
   useEffect(() => {
     setLocalFormData(formData);
   }, [formData]);
 
-  // Cargar las preguntas al iniciar
   useEffect(() => {
-    const fetchQuestions = async () => {
+    const cargarPreguntas = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/questions`);
-        if (!response.ok) {
-          throw new Error('No se pudieron cargar las preguntas');
+        setIsLoading(true);
+
+        const apiResponse = await fetchPreguntas();
+        console.log('Respuesta completa de la API:', apiResponse);
+
+        // Extraer el array de preguntas
+        let preguntasArray = [];
+        if (Array.isArray(apiResponse)) {
+          preguntasArray = apiResponse;
+        } else if (apiResponse && Array.isArray(apiResponse.data)) {
+          preguntasArray = apiResponse.data;
         }
-        const data = await response.json();
-        setQuestions(data.questions);
+
+        if (!preguntasArray.length) {
+          throw new Error('No se recibieron preguntas');
+        }
+
+        // Procesar las preguntas - extraer las que tienen IDQuestion
+        const questionsData = preguntasArray.filter(item => 'IDQuestion' in item);
+        console.log('Preguntas filtradas:', questionsData);
+
+        // Extraer las respuestas y organizarlas por IDQuestion
+        const answersMap = {};
+
+        // Primero buscar respuestas en la propiedad "Answers" de cada pregunta
+        preguntasArray.forEach(item => {
+          if (item.Answers && Array.isArray(item.Answers) && item.Answers.length > 0) {
+            answersMap[item.IDQuestion] = item.Answers;
+          }
+
+          // También buscar en el campo "answers" (minúsculas)
+          if (item.answers && Array.isArray(item.answers) && item.answers.length > 0) {
+            answersMap[item.IDQuestion] = item.answers;
+          }
+        });
+
+        // Buscar respuestas en un campo posible de respuestas en el objeto principal
+        if (apiResponse && apiResponse.answers && typeof apiResponse.answers === 'object') {
+          // Si las respuestas están en un objeto con IDs de preguntas como claves
+          Object.keys(apiResponse.answers).forEach(questionId => {
+            answersMap[questionId] = apiResponse.answers[questionId];
+          });
+        }
+
+        // Imprimir las respuestas encontradas para depuración
+        console.log('Respuestas encontradas:', answersMap);
+        console.log('Número de preguntas con respuestas:', Object.keys(answersMap).length);
+
+        setQuestions(questionsData);
+        setAnswers(answersMap);
+        setIsLoading(false);
       } catch (err) {
-        setError(err.message);
-      } finally {
+        console.error('Error completo:', err);
+        setError('Error al cargar las preguntas: ' + err.message);
         setIsLoading(false);
       }
     };
 
-    fetchQuestions();
+    cargarPreguntas();
   }, []);
 
-  // Función para manejar cambios en los campos
-  const handleChange = (fieldId, value) => {
-    // Actualizar estado local
+  const handleInputChange = (questionId, value) => {
     const updatedData = {
       ...localFormData,
-      [fieldId]: value
+      [questionId]: value
     };
+
     setLocalFormData(updatedData);
 
-    // Notificar al componente padre
+    // Propagar el cambio al componente padre
     if (onFormChange) {
-      onFormChange({ [fieldId]: value });
+      onFormChange({ [questionId]: value });
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
-    
+
+    // Verificar que todos los campos requeridos estén completos
+    const requiredQuestions = questions.filter(q => q.Required === true);
+    const missingRequired = requiredQuestions.filter(q =>
+      !localFormData[q.IDQuestion] || localFormData[q.IDQuestion] === ""
+    );
+
+    if (missingRequired.length > 0) {
+      setError(`Por favor complete los siguientes campos obligatorios: ${missingRequired.map(q => q.Description).join(", ")}`);
+      return;
+    }
+
     try {
-      const response = await fetch(`${API_BASE_URL}/submit-form`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ formData: localFormData })
-      });
+      setIsLoading(true);
 
-      if (!response.ok) {
-        throw new Error('Error al enviar el formulario');
-      }
+      // Enviar datos al servidor
+      await enviarRespuestas(localFormData);
 
-      setSubmitted(true);
+      setIsSuccess(true);
     } catch (err) {
-      setError(err.message);
+      setError('Error al enviar el formulario: ' + err.message);
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (isLoading && questions.length === 0) {
-    return <div className="loading">Cargando formulario...</div>;
+  const resetForm = () => {
+    const emptyForm = {};
+    setLocalFormData(emptyForm);
+
+    if (onFormChange) {
+      onFormChange(emptyForm);
+    }
+
+    setIsSuccess(false);
+  };
+
+  // --- BLOQUE QUE GESTIONA CUÁNDO APARECEN LAS PREGUNTAS DE CADA CONJUNTO ---
+  const shouldShowQuestion = useCallback((question) => {
+    // --- Mostrar siempre la primera pregunta de cada conjunto ---
+    if (question.IDQuestion === "a3c6c678-3a65-495e-b36f-f345ca8e1af4") return true; // Invernaderos
+    if (question.IDQuestion === "1b580d4e-d2c2-4845-9ac3-7bdd643a4667") return true; // Riego
+    if (question.IDQuestion === "c28fe531-847d-4160-9aeb-da32e0c81a09") return true; // Pantallas
+    if (question.IDQuestion === "8aa4b5aa-b756-4990-9194-52262f38c2a5") return true; // Depósitos de chapa
+    if (question.IDQuestion === "12ada762-d944-4faf-a148-b5bb6b62d149") return true; // Revestimiento embalse
+    if (question.IDQuestion === "731c8a1a-b730-4902-903f-a7de15502244") return true; // Osmosis
+
+    // --- INVERNADEROS: solo si la primera está respondida ---
+    if (question.Orden >= 7 && question.Orden <= 58) {
+      const modeloInvernadero = localFormData["a3c6c678-3a65-495e-b36f-f345ca8e1af4"];
+      if (!modeloInvernadero) return false;
+    }
+    // --- PANTALLAS: solo si la primera está respondida ---
+    if (question.Orden >= 59 && question.Orden <= 67) {
+      const tipoPantalla = localFormData["c28fe531-847d-4160-9aeb-da32e0c81a09"];
+      if (!tipoPantalla) return false;
+    }
+    // --- RIEGO: solo si la primera está respondida ---
+    if (question.Orden >= 68 && question.Orden <= 98) {
+      const tipoRiego = localFormData["1b580d4e-d2c2-4845-9ac3-7bdd643a4667"];
+      if (!tipoRiego) return false;
+    }
+    // --- DEPÓSITOS DE CHAPA: solo si la primera está respondida ---
+    // Del 115 al 121, solo si la 115 tiene respuesta
+    if (question.Orden >= 116 && question.Orden <= 122) {
+      const primerDeposito = localFormData["8aa4b5aa-b756-4990-9194-52262f38c2a5"];
+      if (!primerDeposito) return false;
+    }
+    // --- REVESTIMIENTO EMBALSE: solo si la primera está respondida ---
+    // Del 123 al 130, solo si la 123 tiene respuesta
+    if (question.Orden >= 123 && question.Orden <= 130) {
+      const revestimientoEmbalse = localFormData["12ada762-d944-4faf-a148-b5bb6b62d149"];
+      if (!revestimientoEmbalse) return false;
+    }
+
+    // --- DISEÑO PLANTA OSMOSIS: solo si la primera está respondida ---
+    // Del 131 al 137, solo si la 131 tiene respuesta
+    if (question.Orden >= 131 && question.Orden <= 137) {
+      const primerOsmosis = localFormData["731c8a1a-b730-4902-903f-a7de15502244"];
+      if (!primerOsmosis) return false;
+    }
+
+    // ...resto de tu lógica de dependencias...
+    return true;
+  }, [localFormData]);
+
+  // Ordenar preguntas por el campo Orden y filtrar según reglas
+  const sortedAndFilteredQuestions = useMemo(() => {
+    return [...questions]
+      .sort((a, b) => a.Orden - b.Orden)
+      .filter(question => shouldShowQuestion(question));
+  }, [questions, shouldShowQuestion]);
+
+  // Renderizar un campo según su tipo
+  const renderField = (question) => {
+    const { IDQuestion, Type, Description } = question;
+
+    switch (Type) {
+      case 0: // String
+        return (
+          <input
+            type="text"
+            id={`question-${IDQuestion}`}
+            className="form-control"
+            value={localFormData[IDQuestion] || ''}
+            onChange={(e) => handleInputChange(IDQuestion, e.target.value)}
+            required={question.Required === true}
+            disabled={question.Disabled === true}
+          />
+        );
+
+      case 1: // Boolean (Sí / No)
+        return (
+          <div className="si-no-options">
+            <div className="form-check form-check-inline">
+              <input
+                type="radio"
+                id={`question-${IDQuestion}-si`}
+                name={`question-${IDQuestion}`}
+                className="form-check-input"
+                value="1"
+                checked={localFormData[IDQuestion] === "1"}
+                onChange={(e) => handleInputChange(IDQuestion, e.target.value)}
+                required={question.Required === true}
+                disabled={question.Disabled === true}
+              />
+              <label className="form-check-label" htmlFor={`question-${IDQuestion}-si`}>
+                Sí
+              </label>
+            </div>
+            <div className="form-check form-check-inline">
+              <input
+                type="radio"
+                id={`question-${IDQuestion}-no`}
+                name={`question-${IDQuestion}`}
+                className="form-check-input"
+                value="0"
+                checked={localFormData[IDQuestion] === "0"}
+                onChange={(e) => handleInputChange(IDQuestion, e.target.value)}
+                required={question.Required === true}
+                disabled={question.Disabled === true}
+              />
+              <label className="form-check-label" htmlFor={`question-${IDQuestion}-no`}>
+                No
+              </label>
+            </div>
+          </div>
+        );
+
+      case 3: { // SingleSelection
+        const questionAnswers = answers[IDQuestion] || [];
+        const selectedAnswer = questionAnswers.find(
+          ans => String(ans.CodAnswer) === String(localFormData[IDQuestion])
+        );
+        return (
+          <div>
+            <select
+              id={`question-${IDQuestion}`}
+              className="form-control"
+              value={localFormData[IDQuestion] || ''}
+              onChange={(e) => handleInputChange(IDQuestion, e.target.value)}
+              required={question.Required === true}
+              disabled={question.Disabled === true}
+            >
+              <option value="">
+                {questionAnswers.length === 0
+                  ? "No hay opciones disponibles"
+                  : "Seleccione una opción"}
+              </option>
+              {questionAnswers.map((answer) => (
+                <option
+                  key={answer.IDAnswer}
+                  value={answer.CodAnswer}
+                >
+                  {answer.Description}
+                </option>
+              ))}
+            </select>
+            {/* Mostrar imagen si la opción seleccionada tiene imagen */}
+            {selectedAnswer && selectedAnswer.Images && selectedAnswer.Images.length > 0 && (
+              <div style={{ marginTop: 10 }}>
+                <img
+                  src={`data:image/png;base64,${selectedAnswer.Images[0]}`}
+                  alt={selectedAnswer.Description}
+                  style={{ width: 500, height: 200, objectFit: 'contain', border: '1px solid #eee', borderRadius: 8 }}
+                />
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      // Puedes añadir más tipos según tus necesidades (por ejemplo, MultipleSelection, Entity, etc.)
+      default:
+        return <p className="text-muted">Tipo de campo no soportado: {Type}</p>;
+    }
+  };
+
+  // Renderizar el componente según el estado
+  if (isLoading) {
+    return <div className="loading">Cargando preguntas...</div>;
   }
 
   if (error) {
     return <div className="error">{error}</div>;
   }
 
-  if (submitted) {
+  if (isSuccess) {
     return (
       <div className="success-message">
         <h2>¡Formulario enviado con éxito!</h2>
-        <p>Gracias por completar el formulario. Nos pondremos en contacto contigo pronto.</p>
-        <button onClick={() => setSubmitted(false)}>Completar otro formulario</button>
+        <p>Gracias por completar el formulario.</p>
+        <button onClick={resetForm} className="btn btn-primary">Completar otro formulario</button>
       </div>
     );
   }
 
-  // En el render, utilizar el readOnly prop para deshabilitar los campos cuando sea necesario
+  // --- BLOQUE QUE GESTIONA EL COLOR DE BORDE SEGÚN EL CONJUNTO ---
   return (
-    <div className="formulario-manual container">
-      <h2>Formulario de Configuración de Invernadero</h2>
+    <div className="formulario-manual">
       <form onSubmit={handleSubmit}>
-        <div className="form-sections row g-4"> {/* Usamos 'g-4' para añadir espacio (gutter) entre las columnas */}
-          {/* Información General */}
-          <div className="col-md-6"> {/* Solo usar 'col-md-6' sin otras clases de margen */}
-            <div className="form-section h-100"> {/* Añadir h-100 para que todos los cuadrados tengan la misma altura */}
-              <h3>Información General</h3>
-              <RenderField 
-                question={questions.find(q => q.id === "nueva_oferta")}
-                value={localFormData["nueva_oferta"]}
-                onChange={handleChange}
-                disabled={readOnly}
-              />
-              <RenderField 
-                question={questions.find(q => q.id === "oportunidad")}
-                value={localFormData["oportunidad"]}
-                onChange={handleChange}
-                disabled={readOnly}
-              />
-              <RenderField 
-                question={questions.find(q => q.id === "tipo_oferta")}
-                value={localFormData["tipo_oferta"]}
-                onChange={handleChange}
-                disabled={readOnly}
-              />
+        <div className="form-container">
+          {sortedAndFilteredQuestions.length > 0 ? (
+            <div className="form-grid">
+              {sortedAndFilteredQuestions.map((question) => {
+                let conjuntoClass = '';
+                // --- INVERNADEROS: del 7 al 58 (borde verde) ---
+                if (question.Orden >= 7 && question.Orden <= 58) {
+                  conjuntoClass = 'invernadero-question';
+                } else if (question.Orden >= 58 && question.Orden <= 66) {
+                  conjuntoClass = 'pantalla-question';
+                } else if (question.Orden >= 67 && question.Orden <= 98) {
+                  conjuntoClass = 'riego-question';
+                } else if (question.Orden >= 116 && question.Orden <= 122) {
+                  conjuntoClass = 'deposito-chapa-question';
+                } else if (question.Orden >= 123 && question.Orden <= 130) {
+                  conjuntoClass = 'revestimiento-embalse-question';
+                } else if (question.Orden >= 131 && question.Orden <= 137) {
+                  conjuntoClass = 'osmosis-question';
+                }
+
+                return (
+                  <div key={question.IDQuestion} className={`form-question-card ${conjuntoClass}`}>
+                    <div className="form-question-content">
+                      <div className="form-group">
+                        <label htmlFor={`question-${question.IDQuestion}`}>
+                          {question.Description}
+                          {question.Required && <span className="required-mark">*</span>}
+                        </label>
+                        {question.Comment && (
+                          <small className="form-text text-muted">{question.Comment}</small>
+                        )}
+                        {renderField(question)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
-          
-          {/* Ubicación */}
-          <div className="col-md-6">
-            <div className="form-section h-100">
-              <h3>Ubicación</h3>
-              <RenderField 
-                question={questions.find(q => q.id === "provincia_cercana")}
-                value={localFormData["provincia_cercana"]}
-                onChange={handleChange}
-                disabled={readOnly}
-              />
-              <RenderField 
-                question={questions.find(q => q.id === "coordenadas_finca")}
-                value={localFormData["coordenadas_finca"]}
-                onChange={handleChange}
-                disabled={readOnly}
-              />
-            </div>
-          </div>
-          
-          {/* Tipo de Instalación */}
-          <div className="col-md-6">
-            <div className="form-section h-100">
-              <h3>Tipo de Instalación</h3>
-              <RenderField 
-                question={questions.find(q => q.id === "tipo_instalacion")}
-                value={localFormData["tipo_instalacion"]}
-                onChange={handleChange}
-                disabled={readOnly}
-              />
-            </div>
-          </div>
-
-          {/* Secciones condicionales de Invernadero */}
-          {localFormData["tipo_instalacion"] === "Invernadero" && (
-            <>
-              {/* Estructura */}
-              <div className="col-md-6">
-                <div className="form-section h-100">
-                  <h4>Estructura</h4>
-                  <RenderField 
-                    question={questions.find(q => q.id === "tipo_arco")}
-                    value={localFormData["tipo_arco"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                  <RenderField 
-                    question={questions.find(q => q.id === "largo_invernadero")}
-                    value={localFormData["largo_invernadero"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                  <RenderField 
-                    question={questions.find(q => q.id === "numero_capillas")}
-                    value={localFormData["numero_capillas"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                  <RenderField 
-                    question={questions.find(q => q.id === "altura_canal")}
-                    value={localFormData["altura_canal"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                </div>
-              </div>
-
-              {/* Cimentación y Pilares */}
-              <div className="col-md-6">
-                <div className="form-section h-100">
-                  <h4>Cimentación y Pilares</h4>
-                  <RenderField 
-                    question={questions.find(q => q.id === "cimentacion")}
-                    value={localFormData["cimentacion"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                  <RenderField 
-                    question={questions.find(q => q.id === "pilares_frontales")}
-                    value={localFormData["pilares_frontales"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                  <RenderField 
-                    question={questions.find(q => q.id === "pilares_laterales")}
-                    value={localFormData["pilares_laterales"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                  <RenderField 
-                    question={questions.find(q => q.id === "pilares_centrales")}
-                    value={localFormData["pilares_centrales"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                  <RenderField 
-                    question={questions.find(q => q.id === "galvanizado_pilares")}
-                    value={localFormData["galvanizado_pilares"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                  <RenderField 
-                    question={questions.find(q => q.id === "observaciones_pilares")}
-                    value={localFormData["observaciones_pilares"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                </div>
-              </div>
-
-              {/* Canales */}
-              <div className="col-md-6">
-                <div className="form-section h-100">
-                  <h4>Canales</h4>
-                  <RenderField 
-                    question={questions.find(q => q.id === "galvanizado_canales")}
-                    value={localFormData["galvanizado_canales"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                  <RenderField 
-                    question={questions.find(q => q.id === "tratamiento_anticaidas_laterales")}
-                    value={localFormData["tratamiento_anticaidas_laterales"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                  <RenderField 
-                    question={questions.find(q => q.id === "lineas_vida_canales")}
-                    value={localFormData["lineas_vida_canales"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                  <RenderField 
-                    question={questions.find(q => q.id === "opciones_canales")}
-                    value={localFormData["opciones_canales"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                  <RenderField 
-                    question={questions.find(q => q.id === "pendiente_invernadero")}
-                    value={localFormData["pendiente_invernadero"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                </div>
-              </div>
-
-              {/* Estructura Superior */}
-              <div className="col-md-6">
-                <div className="form-section h-100">
-                  <h4>Estructura Superior</h4>
-                  <RenderField 
-                    question={questions.find(q => q.id === "emparrillado")}
-                    value={localFormData["emparrillado"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                  <RenderField 
-                    question={questions.find(q => q.id === "espaciado_lineas")}
-                    value={localFormData["espaciado_lineas"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                  <RenderField 
-                    question={questions.find(q => q.id === "tipo_correa")}
-                    value={localFormData["tipo_correa"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                  <RenderField 
-                    question={questions.find(q => q.id === "calidad_cumbrera")}
-                    value={localFormData["calidad_cumbrera"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                  <RenderField 
-                    question={questions.find(q => q.id === "calidad_lateral")}
-                    value={localFormData["calidad_lateral"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                  <RenderField 
-                    question={questions.find(q => q.id === "calidad_frontal")}
-                    value={localFormData["calidad_frontal"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                  <RenderField 
-                    question={questions.find(q => q.id === "calidad_canales")}
-                    value={localFormData["calidad_canales"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                  <RenderField 
-                    question={questions.find(q => q.id === "calidad_ventana_cenital")}
-                    value={localFormData["calidad_ventana_cenital"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                  <RenderField 
-                    question={questions.find(q => q.id === "observaciones_correas")}
-                    value={localFormData["observaciones_correas"]}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                  />
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Sección de Nave (Condicional) */}
-          {localFormData["tipo_instalacion"] === "Nave" && (
-            <div className="col-md-6">
-              <div className="form-section h-100">
-                <h3>Detalles de la Nave</h3>
-                {/* Renderizar campos específicos para naves */}
-              </div>
+          ) : (
+            <div className="no-questions">
+              <h3>No hay preguntas disponibles</h3>
+              <p>En este momento no hay preguntas configuradas para este formulario.</p>
             </div>
           )}
-        </div>
-        
-        <div className="form-actions mt-4">
-          <button type="submit" disabled={isLoading || readOnly}>
-            {isLoading ? 'Enviando...' : 'Enviar Formulario'}
-          </button>
-          <button type="reset" onClick={() => setLocalFormData({})} disabled={readOnly}>
-            Limpiar Formulario
-          </button>
+
+          <div className="submit-container">
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={sortedAndFilteredQuestions.length === 0 || isLoading}
+            >
+              Enviar respuestas
+            </button>
+          </div>
         </div>
       </form>
     </div>
   );
-};
-
-// Componente auxiliar para renderizar cada campo según su tipo
-const RenderField = ({ question, value, onChange, disabled = false }) => {
-  if (!question) return null;
-  
-  // Manejador general para cualquier cambio
-  const handleChange = (newValue) => {
-    if (!disabled && onChange) {
-      onChange(question.id, newValue);
-    }
-  };
-  
-  // Renderizado según tipo de pregunta
-  switch(question.type) {
-    case 'select':
-      return (
-        <div className="form-group">
-          <label htmlFor={question.id}>{question.text}</label>
-          <select
-            id={question.id}
-            className="form-control"
-            value={value || ''}
-            onChange={(e) => handleChange(e.target.value)}
-            disabled={disabled}
-          >
-            <option value="">Seleccionar...</option>
-            {question.options.map(option => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-        </div>
-      );
-    
-    // Otros tipos de campos (text, textarea, etc.)
-    // ...con la misma lógica de disabled
-    
-    default:
-      return (
-        <div className="form-group">
-          <label htmlFor={question.id}>{question.text}</label>
-          <input
-            type="text"
-            id={question.id}
-            className="form-control"
-            value={value || ''}
-            onChange={(e) => handleChange(e.target.value)}
-            placeholder={question.placeholder || ''}
-            disabled={disabled}
-          />
-        </div>
-      );
-  }
-};
+}
 
 export default FormularioManual;

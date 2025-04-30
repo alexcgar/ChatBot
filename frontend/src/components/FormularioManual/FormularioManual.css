@@ -1,62 +1,252 @@
 .formulario-manual {
-  max-width: 1000px;
+  width: 100%;
+  max-width: 800px;
   margin: 0 auto;
-  padding: 20px;
-  background-color: #f9f9f9;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Contenedor principal con línea temporal */
+.form-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 10px;
+  gap: 0;
+  min-height: 200px;
+}
+
+/* Línea vertical para el efecto timeline */
+.form-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 20px;
+  width: 2px;
+  background-color: #3498db;
+  z-index: 1;
+}
+
+/* Layout de los elementos del formulario */
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  position: relative;
+  padding-left: 30px;
+}
+
+/* Tarjeta individual de pregunta */
+.form-question-card {
+  position: relative;
+  background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.form-sections {
-  display: grid;
-}
-
-.form-section {
-  background-color: white;
   padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
-  margin-bottom: 20px;
-  /* Añade un margen inferior para separar las secciones */
+  transition: transform 0.2s, box-shadow 0.2s;
+  border-left: 3px solid #3498db;
+  margin-left: 20px;
 }
 
-.form-section h3 {
-  margin-top: 0;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
-  color: #333;
+/* Estilos específicos para tipos de preguntas */
+.form-question-card.invernadero-question {
+  border-left: 3px solid #27ae60; /* Verde para invernaderos */
+}
+.form-question-card.pantalla-question {
+  border-left: 3px solid #1220e7; /* Azul (elige el color que prefieras) */
+}
+.form-question-card.riego-question {
+  border-left: 3px solid #e67e22; /* Naranja para riego */
+}
+.deposito-chapa-question {
+  border-left: 3px solid #8e44ad; /* Morado, elige el color que prefieras */
+}
+.revestimiento-embalse-question {
+  border-left: 3px solid #16a085; /* Verde azulado, elige el color que prefieras */
+}
+.osmosis-question {
+  border-left: 3px solid #f39c12; /* Amarillo, o el color que prefieras */
 }
 
-.form-section h4 {
-  margin-top: 20px;
-  margin-bottom: 10px;
-  padding-bottom: 5px;
-  border-bottom: 1px solid #eee;
-  color: #555;
-  font-size: 1.2em;
-  font-weight: 600;
+/* Círculo conectando con la línea vertical */
+.form-question-card::before {
+  content: '';
+  position: absolute;
+  left: -33px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  background-color: #3498db;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 2px #3498db;
+  z-index: 2;
 }
 
-/* Estilos para que las secciones se muestren en columnas en pantallas grandes */
+/* Línea horizontal conectando el círculo con la tarjeta */
+.form-question-card::after {
+  content: '';
+  position: absolute;
+  left: -17px;
+  top: 50%;
+  width: 17px;
+  height: 2px;
+  background-color: #3498db;
+  transform: translateY(-50%);
+}
 
+.form-question-card:hover {
+  transform: translateX(5px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
 
+.form-question-content {
+  padding: 5px;
+}
 
+/* Estilos para los grupos de formulario */
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .form-group label {
   display: block;
   margin-bottom: 5px;
   font-weight: 500;
+  color: #333;
 }
 
-.form-actions {
+.form-control {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.form-control:focus {
+  border-color: #3498db;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+/* Estilos para selects */
+select.form-control {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  padding-right: 35px;
+  appearance: none;
+}
+
+/* Contenedor del botón de envío */
+.submit-container {
   margin-top: 30px;
-  display: flex;
-  justify-content: space-between;
+  padding-left: 50px;
+  position: relative;
 }
 
-.form-actions button {
+/* Botón de envío */
+.btn-primary {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 12px 25px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: #2980b9;
+}
+
+.btn-primary:disabled {
+  background-color: #b3b3b3;
+  cursor: not-allowed;
+}
+
+/* Mensaje de éxito */
+.success-message {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.success-message h2 {
+  margin-top: 0;
+}
+
+.success-message button {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
   padding: 10px 20px;
+  font-size: 16px;
+  margin-top: 15px;
+  cursor: pointer;
+}
+
+.success-message button:hover {
+  background-color: #218838;
+}
+
+/* Estilos para mensajes de carga y error */
+.loading, .error, .no-questions {
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.loading {
+  background-color: #e9f5fe;
+  color: #3498db;
+}
+
+.error {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.no-questions {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  padding: 30px;
+  border: 1px dashed #dee2e6;
+}
+
+/* Estilos para opciones de sí/no */
+.si-no-options {
+  display: flex;
+  gap: 20px;
+}
+
+.form-check-inline {
+  display: flex;
+  align-items: center;
+  margin-right: 0;
+}
+
+.form-check-input {
+  margin-right: 8px;
+}
+
+.required-mark {
+  color: red;
+  margin-left: 4px;
+}
+
+.autocompletado {
+  border: 2px solid #4caf50 !important; /* Verde para autocompletados */
+  background: #e8f5e9;
 }

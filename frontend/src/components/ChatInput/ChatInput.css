@@ -1,0 +1,68 @@
+.chat-input-container {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .chat-input-container form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .input-container {
+    display: flex;
+    width: 100%;
+  }
+  
+  .input-container input {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px 0 0 4px;
+    outline: none;
+  }
+  
+  .input-container button {
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+  }
+  
+  .input-container button:hover {
+    background-color: #0069d9;
+  }
+  
+  .input-container button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
+  
+  /* Estilo para los botones de opciones */
+  .select-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+    width: 100%;
+  }
+  
+  .option-button {
+    background-color: #f1f1f1;
+    border: 1px solid #ddd;
+    border-radius: 16px;
+    padding: 5px 12px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .option-button:hover {
+    background-color: #e0e0e0;
+  }
+  
+  .option-button:active {
+    background-color: #d0d0d0;
+  }
