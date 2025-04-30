@@ -31,9 +31,17 @@ function App() {
     loadQuestions();
   }, []);
 
+  // Añadir este useEffect
+  useEffect(() => {
+    // Este efecto se ejecuta cuando cambia formData
+    // No necesitamos hacer nada aquí, pero asegura que
+    // los componentes hijos reciben los datos actualizados
+  }, [formData]);
+
   // Actualiza formData desde cualquiera de los dos componentes
-  const handleUpdateFormData = (newData) =>
+  const handleUpdateFormData = (newData) => {
     setFormData(prev => ({ ...prev, ...newData }));
+  };
 
   if (isLoading) {
     return <div className="text-center mt-5">Cargando preguntas…</div>;

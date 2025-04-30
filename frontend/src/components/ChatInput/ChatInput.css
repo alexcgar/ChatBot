@@ -12,6 +12,7 @@
   .input-container {
     display: flex;
     width: 100%;
+    align-items: flex-end; /* alinear elementos al final para botón alineado */
   }
   
   .input-container input {
@@ -29,6 +30,8 @@
     border: none;
     border-radius: 0 4px 4px 0;
     cursor: pointer;
+    height: auto;
+    align-self: stretch; /* hacer que el botón tenga la misma altura que el textarea */
   }
   
   .input-container button:hover {
@@ -65,4 +68,20 @@
   
   .option-button:active {
     background-color: #d0d0d0;
+  }
+
+  /* Añadir estos estilos para el textarea expandible */
+  .expandable-textarea {
+    resize: none;
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px 0 0 4px;
+    outline: none;
+    min-height: 40px;
+    max-height: 150px; /* limitar altura máxima */
+    overflow-y: auto; /* permitir scroll si excede max-height */
+    font-family: inherit; /* usar la misma fuente que el resto de la app */
+    font-size: inherit; /* usar el mismo tamaño de fuente */
+    line-height: 1.5; /* para mejor legibilidad */
   }

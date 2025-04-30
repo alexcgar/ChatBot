@@ -66,6 +66,7 @@ def generate_question():
 def extract_project_data():
     data = request.json
     project_description = data.get("description")
+    question_descriptions = data.get("questionDescriptions", [])  # Lista de todas las descripciones
 
     if not project_description:
         return jsonify({"error": "Falta el campo 'description'"}), 400
@@ -73,67 +74,110 @@ def extract_project_data():
     if not openai_client:
         return jsonify({"error": "Cliente OpenAI no inicializado"}), 500
 
-    # List of all fields to extract
-    fields_to_extract = [
-        "CodCompany",
-        "Oportunidad",
-        "Referencia",
-        "- Tipo De Oferta (opciones válidas exactas: 'B (En firme)', 'A (Estimada)', 'NINGUNO')\n",
-        "Destino",
-        "Filtro Proyecto",
-    ]
+    # Procesar campos en lotes más pequeños
+    batch_size = 30  # Ajusta según sea necesario
+    all_extracted_data = {}
+    
+    for i in range(0, len(question_descriptions), batch_size):
+        batch = question_descriptions[i:i+batch_size]
+        
+        # Preparar lista de campos para este lote
+        fields_to_extract = []
+        for desc in batch:
+            if desc == "Tipo De Oferta":
+                fields_to_extract.append(f"- {desc} (opciones válidas exactas: 'B (En firme)', 'A (Estimada)', 'NINGUNO')")
+            else:
+                fields_to_extract.append(desc)
 
-    # Format the fields for the prompt
-    fields_prompt_list = "\n".join([f"- {field}" for field in fields_to_extract])
+        # Formatear campos para el prompt
+        fields_prompt_list = "\n".join([f"- {field}" for field in fields_to_extract])
 
-    try:
-        messages = [
-            {
-                "role": "system",
-                "content": (
+        try:
+            messages = [
+                {"role": "system", "content": (
                     "Eres un asistente experto en agricultura que extrae información estructurada "
                     "de descripciones de proyectos agrícolas. A partir del texto proporcionado por el usuario, "
-                    "extrae únicamente los siguientes campos en formato JSON. Usa exactamente los nombres de campo proporcionados:\n"
+                    "extrae únicamente los siguientes campos en formato JSON. "
+                    "Usa exactamente los nombres de campo proporcionados:\n"
                     f"{fields_prompt_list}\n\n"
                     "Rellena solo los campos que puedas deducir con alta confianza a partir del texto. "
                     "Si algún campo no está presente o no puedes deducirlo con certeza, devuélvelo con valor null. "
-                    "No inventes datos. No añadas explicaciones."
-                ),
-            },
-            {"role": "user", "content": project_description},
-        ]
+                    "No inventes datos. No añadas explicaciones o campos adicionales."
+                )},
+                {"role": "user", "content": project_description}
+            ]
 
-        chat_completion = openai_client.chat.completions.create(
-            model="gpt-3.5-turbo", messages=messages, temperature=0.0, max_tokens=1500
-        )
-
-        extracted_data = chat_completion.choices[0].message.content.strip()
-
-        # Attempt to parse the JSON response
-        import json
-
-        try:
-            if extracted_data.startswith("```json"):
-                extracted_data = extracted_data[7:-3].strip()
-            extracted_json = json.loads(extracted_data)
-        except json.JSONDecodeError as json_err:
-            print(f"Error decoding JSON from OpenAI: {json_err}")
-            print(f"Raw response: {extracted_data}")
-            return (
-                jsonify(
-                    {
-                        "error": "Error al decodificar la respuesta de la IA",
-                        "raw_response": extracted_data,
-                    }
-                ),
-                500,
+            chat_completion = openai_client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+                temperature=0.0,
+                max_tokens=1000
             )
 
-        return jsonify({"data": extracted_json})
+            extracted_data = chat_completion.choices[0].message.content.strip()
+            
+            # Parsear JSON (con manejo de errores mejorado como en la Solución 1)
+            import json
+            try:
+                # Si la respuesta viene envuelta en bloques de código, limpiarla
+                extracted_data = extracted_data.strip()
+                
+                if extracted_data.startswith("```json"):
+                    extracted_data = extracted_data[7:].strip()
+                elif extracted_data.startswith("```"):
+                    extracted_data = extracted_data[3:].strip()
+                if extracted_data.endswith("```"):
+                    extracted_data = extracted_data[:-3].strip()
+                
+                # Intenta corregir JSON truncado o malformado
+                if extracted_data.endswith(","):
+                    extracted_data = extracted_data[:-1] + "}"
+                
+                # Asegurar que hay llaves de apertura y cierre
+                if not extracted_data.startswith("{"):
+                    extracted_data = "{" + extracted_data
+                if not extracted_data.endswith("}"):
+                    extracted_data = extracted_data + "}"
+                
+                # Intentar parsear
+                extracted_json = json.loads(extracted_data)
+                
+                # Fusionar con resultados anteriores
+                all_extracted_data.update(extracted_json)
+            except json.JSONDecodeError as json_err:
+                print(f"Error parsing JSON: {json_err}")
+                print(f"Raw response: {extracted_data}")
+                
+                # Plan B: Crear un JSON con los campos que podamos extraer
+                try:
+                    # Regex para extraer pares clave-valor
+                    import re
+                    pairs = re.findall(r'"([^"]+)"\s*:\s*("[^"]*"|null|\d+|true|false)', extracted_data)
+                    
+                    if pairs:
+                        fallback_json = "{"
+                        for i, (key, value) in enumerate(pairs):
+                            fallback_json += f'"{key}":{value}'
+                            if i < len(pairs) - 1:
+                                fallback_json += ","
+                        fallback_json += "}"
+                        
+                        extracted_json = json.loads(fallback_json)
+                        
+                        # Fusionar con resultados anteriores
+                        all_extracted_data.update(extracted_json)
+                except:
+                    pass
+                
+                print(f"Error parsing response from AI, raw response: {extracted_data}")
+                continue
 
-    except Exception as e:
-        print(f"Error al llamar a OpenAI o procesar la respuesta: {e}")
-        return jsonify({"error": "Error al extraer los datos"}), 500
+        except Exception as e:
+            print(f"Error al procesar lote {i}-{i+batch_size}: {e}")
+            # Continuar con el siguiente lote
+
+    # Devolver todos los datos extraídos
+    return jsonify({"data": all_extracted_data})
 
 
 if __name__ == "__main__":

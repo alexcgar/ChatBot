@@ -1,8 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import './ChatInput.css';
 
 const ChatInput = ({ question, onSend, isLoading }) => {
   const [inputValue, setInputValue] = useState('');
+  const textareaRef = useRef(null);
+  
+  // Función para ajustar automáticamente la altura
+  const adjustTextareaHeight = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    // Resetear altura para medir correctamente
+    textarea.style.height = 'auto';
+    // Establecer la altura basada en el contenido
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  };
+  
+  // Ajustar altura cuando cambia el valor
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [inputValue]);
   
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -10,6 +27,10 @@ const ChatInput = ({ question, onSend, isLoading }) => {
     
     onSend(inputValue);
     setInputValue('');
+    // Resetear altura después de enviar
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
   };
   
   // Si es una pregunta con opciones de selección
@@ -33,12 +54,14 @@ const ChatInput = ({ question, onSend, isLoading }) => {
             ))}
           </div>
           <div className="input-container">
-            <input
-              type="text"
+            <textarea
+              ref={textareaRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder={question.placeholder || "Escribe tu respuesta o selecciona una opción..."}
               disabled={isLoading}
+              rows="1"
+              className="expandable-textarea"
             />
             <button type="submit" disabled={inputValue.trim() === '' || isLoading}>
               {isLoading ? "..." : "Enviar"}
@@ -54,12 +77,14 @@ const ChatInput = ({ question, onSend, isLoading }) => {
     <div className="chat-input-container">
       <form onSubmit={handleSubmit}>
         <div className="input-container">
-          <input
-            type="text"
+          <textarea
+            ref={textareaRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder={question.placeholder || "Escribe tu respuesta..."}
             disabled={isLoading}
+            rows="1"
+            className="expandable-textarea"
           />
           <button type="submit" disabled={inputValue.trim() === '' || isLoading}>
             {isLoading ? "..." : "Enviar"}
