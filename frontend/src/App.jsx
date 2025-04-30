@@ -2,15 +2,16 @@ import React, { useState, useEffect } from 'react';
 import Chatbot from './components/ChatBot/ChatBot';
 import FormularioManual from './components/FormularioManual/FormularioManual';
 import { fetchPreguntas } from './services/api';
+import { FaComments, FaTimes } from 'react-icons/fa';
 import './App.css';
 
 function App() {
   const [questions, setQuestions] = useState([]);
-  const [formData, setFormData]   = useState({});
+  const [formData, setFormData] = useState({});
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError]         = useState(null);
+  const [error, setError] = useState(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
-  // Cargar preguntas al montar la app
   useEffect(() => {
     const loadQuestions = async () => {
       try {
@@ -31,14 +32,6 @@ function App() {
     loadQuestions();
   }, []);
 
-  // Añadir este useEffect
-  useEffect(() => {
-    // Este efecto se ejecuta cuando cambia formData
-    // No necesitamos hacer nada aquí, pero asegura que
-    // los componentes hijos reciben los datos actualizados
-  }, [formData]);
-
-  // Actualiza formData desde cualquiera de los dos componentes
   const handleUpdateFormData = (newData) => {
     setFormData(prev => ({ ...prev, ...newData }));
   };
@@ -52,27 +45,32 @@ function App() {
 
   return (
     <div className="container-fluid">
-      <div className="row main-row mt-2">
-        {/* ChatBot */}
-        <div className="col-12 col-md-3 component-col">
-          <div className="component-header"><h2>Asistente Virtual</h2></div>
-          <div className="component-inner-scroll">
-            <Chatbot
-              questions={questions}
-              formData={formData} 
-              onUpdateFormData={handleUpdateFormData}
-            />
-          </div>
+      <FormularioManual
+        questions={questions}
+        formData={formData}
+        onFormChange={handleUpdateFormData}
+      />
+
+      {/* Burbuja flotante del chat */}
+      <div className={`chat-bubble ${isChatOpen ? 'open' : 'closed'}`}>
+        {/* Botón siempre visible cuando está cerrado */}
+        <div className={`chat-bubble-button ${isChatOpen ? 'hidden' : ''}`} onClick={() => setIsChatOpen(true)}>
+          <FaComments />
         </div>
 
-        {/* Formulario Manual */}
-        <div className="col-12 col-md-8 component-col">
-          <div className="component-header"><h2>Formulario Manual</h2></div>
-          <div className="component-inner-scroll">
-            <FormularioManual
+        {/* Contenedor del chat siempre montado, visibilidad controlada por CSS */}
+        <div className={`chat-bubble-container ${isChatOpen ? '' : 'hidden'}`}>
+          <div className="chat-bubble-header">
+            <h3>Asistente Virtual</h3>
+            <button className="chat-close-button" onClick={() => setIsChatOpen(false)}>
+              <FaTimes />
+            </button>
+          </div>
+          <div className="chat-bubble-content">
+            <Chatbot
               questions={questions}
               formData={formData}
-              onFormChange={handleUpdateFormData}
+              onUpdateFormData={handleUpdateFormData}
             />
           </div>
         </div>

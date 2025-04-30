@@ -570,7 +570,6 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {} }) => {
       <div className="chatbot-main-container">
         <div className="chat-card">
           <div className="card-header">
-            <h3>Asistente Virtual</h3>
           </div>
           <div className="chat-card-body">
             <div className="chat-messages-area" ref={chatMessagesAreaRef}>
