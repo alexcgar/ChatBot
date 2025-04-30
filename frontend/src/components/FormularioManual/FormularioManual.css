@@ -44,42 +44,31 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   padding: 20px;
   transition: transform 0.2s, box-shadow 0.2s;
-  border-left: 3px solid #3498db;
+  border-left: 4px solid #3498db;
   margin-left: 20px;
 }
 
-/* Estilos específicos para tipos de preguntas */
-.form-question-card.invernadero-question {
-  border-left: 3px solid #27ae60; /* Verde para invernaderos */
-}
-.form-question-card.pantalla-question {
-  border-left: 3px solid #1220e7; /* Azul (elige el color que prefieras) */
-}
-.form-question-card.riego-question {
-  border-left: 3px solid #e67e22; /* Naranja para riego */
-}
-.deposito-chapa-question {
-  border-left: 3px solid #8e44ad; /* Morado, elige el color que prefieras */
-}
-.revestimiento-embalse-question {
-  border-left: 3px solid #16a085; /* Verde azulado, elige el color que prefieras */
-}
+
+/* Ajusta los bordes de las subsecciones si es necesario para que no se solapen */
+.deposito-chapa-question,
+.revestimiento-embalse-question,
 .osmosis-question {
-  border-left: 3px solid #f39c12; /* Amarillo, o el color que prefieras */
+  border-left-width: 4px; /* Mantener el grosor del borde izquierdo */
+  /* Puedes ajustar otros bordes si quieres un efecto diferente */
 }
 
 /* Círculo conectando con la línea vertical */
 .form-question-card::before {
   content: '';
   position: absolute;
-  left: -33px;
+  left: -32px;
   top: 50%;
   transform: translateY(-50%);
   width: 16px;
   height: 16px;
   background-color: #3498db;
   border-radius: 50%;
-  border: 3px solid #fff;
+  border: 2px solid #fff;
   box-shadow: 0 0 0 2px #3498db;
   z-index: 2;
 }
@@ -244,6 +233,31 @@ select.form-control {
 .required-mark {
   color: red;
   margin-left: 4px;
+}
+
+/* Estilos para preguntas obligatorias */
+.form-question-card.required-unanswered {
+  border: 2px solid #ff5555 !important; /* Borde rojo más fuerte */
+  background-color: #ffeeee !important; /* Fondo rojo claro */
+}
+
+.form-question-card.required-answered {
+  border: 2px solid #55cc55 !important; /* Borde verde más fuerte */
+  background-color: #eeffee !important; /* Fondo verde claro */
+  transition: background-color 0.5s ease, border-color 0.5s ease;
+}
+
+/* Indicador visual de campo obligatorio */
+.required-mark {
+  color: #ff0000;
+  font-weight: bold;
+  margin-left: 5px;
+}
+
+/* Asegurar que el texto sea visible sobre los fondos coloreados */
+.form-question-card.required-unanswered label,
+.form-question-card.required-answered label {
+  color: #333; /* Color de texto oscuro para mejor contraste */
 }
 
 .autocompletado {

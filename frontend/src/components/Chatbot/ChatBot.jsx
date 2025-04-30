@@ -5,7 +5,7 @@ import { LOCAL_API_URL } from '../../services/api';
 
 const useRenderChatInput = (currentIndex, questions, isTyping, handleSend) => {
   return React.useMemo(() => {
-    if (isTyping || currentIndex >= questions.length) return null;
+    if (currentIndex >= questions.length) return null;
     
     if (currentIndex === -1) {
       return (
@@ -16,7 +16,7 @@ const useRenderChatInput = (currentIndex, questions, isTyping, handleSend) => {
             id: 'initial-description'
           }}
           onSend={handleSend}
-          isLoading={isTyping}
+          isLoading={false}
         />
       );
     } else {
@@ -36,7 +36,7 @@ const useRenderChatInput = (currentIndex, questions, isTyping, handleSend) => {
               }))
             }}
             onSend={handleSend}
-            isLoading={isTyping}
+            isLoading={false}
           />
         );
       } else if (currentQuestion.Type === 4) {
@@ -53,7 +53,7 @@ const useRenderChatInput = (currentIndex, questions, isTyping, handleSend) => {
               }))
             }}
             onSend={handleSend}
-            isLoading={isTyping}
+            isLoading={false}
           />
         );
       } else {
@@ -65,7 +65,7 @@ const useRenderChatInput = (currentIndex, questions, isTyping, handleSend) => {
               id: currentQuestion.IDQuestion
             }}
             onSend={handleSend}
-            isLoading={isTyping}
+            isLoading={false}
           />
         );
       }
@@ -375,11 +375,6 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {} }) => {
           console.log("Preguntas prioritarias seleccionadas:", priorityQuestions.map(q => q.Description));
           setChatHistory(prev => [...prev, {
             sender: 'bot',
-            text: "Estoy analizando tu proyecto. Comenzaré con algunas preguntas mientras completo el análisis en segundo plano...",
-            questionId: 'extracting-start'
-          }]);
-          setChatHistory(prev => [...prev, {
-            sender: 'bot',
             text: 'Estoy analizando tu proyecto y completando automáticamente algunos campos en segundo plano. Puedes continuar respondiendo las preguntas mientras tanto.',
             questionId: 'background-extraction-start'
           }]);
@@ -391,7 +386,6 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {} }) => {
             // Mostrar breve resumen
             setChatHistory(prev => [...prev, {
               sender: 'bot',
-              text: `He identificado algunos datos iniciales y seguiré analizando tu proyecto en segundo plano.`,
               questionId: 'quick-extraction'
             }]);
           }
@@ -567,7 +561,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {} }) => {
     if (chatMessagesAreaRef.current) {
       chatMessagesAreaRef.current.scrollTop = chatMessagesAreaRef.current.scrollHeight;
     }
-  }, [chatHistory]);
+  }, [chatHistory, safeFormData]); // Añadir safeFormData como dependencia
 
   const chatInputComponent = useRenderChatInput(currentIndex, questions, isTyping, handleSend);
 
@@ -580,14 +574,33 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {} }) => {
           </div>
           <div className="chat-card-body">
             <div className="chat-messages-area" ref={chatMessagesAreaRef}>
-              {chatHistory.map((message, index) => (
-                <div 
-                  key={index} 
-                  className={`message ${message.sender} ${message.isAutoCompleted ? 'auto-completed' : ''}`}
-                >
-                  {message.text}
-                </div>
-              ))}
+              {chatHistory.map((message, index) => {
+                // Comprobar si el mensaje es una pregunta y si es requerida
+                const isQuestion = message.questionId && message.sender === 'bot';
+                const currentQuestionObj = isQuestion ? 
+                  questions.find(q => q.IDQuestion === message.questionId) : null;
+                const isRequired = currentQuestionObj?.Required === true;
+                const isAnswered = isQuestion && 
+                  safeFormData[message.questionId] !== undefined && 
+                  safeFormData[message.questionId] !== null &&
+                  safeFormData[message.questionId] !== '';
+                
+                // Determinar las clases CSS según estado
+                let requiredClass = '';
+                if (isRequired) {
+                  requiredClass = isAnswered ? 'required-answered' : 'required-unanswered';
+                }
+              
+                return (
+                  <div 
+                    key={index} 
+                    className={`message ${message.sender} ${message.isAutoCompleted ? 'auto-completed' : ''} ${requiredClass}`}
+                  >
+                    {message.text}
+                    {isRequired && !isAnswered && <span className="required-indicator">*</span>}
+                  </div>
+                );
+              })}
               {isTyping && (
                 <div className="message bot typing">
                   <span className="typing-indicator">

@@ -32,6 +32,13 @@ const ChatInput = ({ question, onSend, isLoading }) => {
       textareaRef.current.style.height = 'auto';
     }
   };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
+  };
   
   // Si es una pregunta con opciones de selección
   if (question.type === 'select' && question.options && question.options.length > 0) {
@@ -47,7 +54,6 @@ const ChatInput = ({ question, onSend, isLoading }) => {
                 onClick={() => {
                   onSend(option.label);
                 }}
-                disabled={isLoading}
               >
                 {option.label}
               </button>
@@ -58,13 +64,13 @@ const ChatInput = ({ question, onSend, isLoading }) => {
               ref={textareaRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder={question.placeholder || "Escribe tu respuesta o selecciona una opción..."}
-              disabled={isLoading}
               rows="1"
               className="expandable-textarea"
             />
-            <button type="submit" disabled={inputValue.trim() === '' || isLoading}>
-              {isLoading ? "..." : "Enviar"}
+            <button type="submit" disabled={inputValue.trim() === ''}>
+              {isLoading ? "Enviando..." : "Enviar"}
             </button>
           </div>
         </form>
@@ -81,13 +87,13 @@ const ChatInput = ({ question, onSend, isLoading }) => {
             ref={textareaRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder={question.placeholder || "Escribe tu respuesta..."}
-            disabled={isLoading}
             rows="1"
             className="expandable-textarea"
           />
-          <button type="submit" disabled={inputValue.trim() === '' || isLoading}>
-            {isLoading ? "..." : "Enviar"}
+          <button type="submit" disabled={inputValue.trim() === ''}>
+            {isLoading ? "Enviando..." : "Enviar"}
           </button>
         </div>
       </form>

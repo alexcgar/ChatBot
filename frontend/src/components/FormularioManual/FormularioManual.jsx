@@ -2,18 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import './FormularioManual.css';
 import { fetchPreguntas, enviarRespuestas } from '../../services/api';
 
-// // --- BLOQUE DE REGLAS DE DEPENDENCIA (puedes añadir más conjuntos aquí) ---
-// const dependencyRules = {
-//   // Invernaderos
-//   "a3c6c678-3a65-495e-b36f-f345ca8e1af4": {
-//     "*": { showQuestions: { fromOrder: 7, toOrder: 57 } }
-//   },
-//   // Tipos de riego
-//   "1b580d4e-d2c2-4845-9ac3-7bdd643a4667": {
-//     "*": { showQuestions: { fromOrder: 67, toOrder: 97 } }
-//   }
-// };
-
 function FormularioManual({ formData = {}, onFormChange }) {
   const [localFormData, setLocalFormData] = useState(formData);
   const [questions, setQuestions] = useState([]);
@@ -24,6 +12,13 @@ function FormularioManual({ formData = {}, onFormChange }) {
 
   // Sincronizar con los datos externos cuando cambien
   useEffect(() => {
+    // --- DEBUGGING SYNC ---
+    console.log('--- useEffect [formData] ---');
+    console.log('Received formData prop:', JSON.stringify(formData));
+    // Verifica si el ID de "Tipo De Oferta" está presente en las props
+    const tipoOfertaValueInProp = formData['1bddb8b1-0012-48ad-ab88-6604550600bf'];
+    console.log('Value for Tipo De Oferta in prop:', tipoOfertaValueInProp);
+    // --- END DEBUGGING SYNC ---
     setLocalFormData(formData);
   }, [formData]);
 
@@ -169,6 +164,11 @@ function FormularioManual({ formData = {}, onFormChange }) {
       const tipoRiego = localFormData["1b580d4e-d2c2-4845-9ac3-7bdd643a4667"];
       if (!tipoRiego) return false;
     }
+    // --- RECOGIDA DE DRENAJES (99-114): solo si la primera está respondida ---
+    if (question.Orden >= 100 && question.Orden <= 114) {
+      const primeraPreguntaDrenajes = localFormData["9701d818-fe0d-4c39-9eb3-0d6ed70cb252"];
+      if (!primeraPreguntaDrenajes) return false;
+    }
     // --- DEPÓSITOS DE CHAPA: solo si la primera está respondida ---
     // Del 115 al 121, solo si la 115 tiene respuesta
     if (question.Orden >= 116 && question.Orden <= 122) {
@@ -182,6 +182,12 @@ function FormularioManual({ formData = {}, onFormChange }) {
       if (!revestimientoEmbalse) return false;
     }
 
+    // --- ALMACENAMIENTO/TRATAMIENTO AGUA (115-131): solo si la 115 está respondida ---
+    if (question.Orden >= 116 && question.Orden <= 131) {
+      const primeraPreguntaAgua = localFormData["10ef21b9-162d-4e3e-b63a-c5756e48d0ea"];
+      if (!primeraPreguntaAgua) return false;
+    }
+
     // --- DISEÑO PLANTA OSMOSIS: solo si la primera está respondida ---
     // Del 131 al 137, solo si la 131 tiene respuesta
     if (question.Orden >= 131 && question.Orden <= 137) {
@@ -189,7 +195,24 @@ function FormularioManual({ formData = {}, onFormChange }) {
       if (!primerOsmosis) return false;
     }
 
-    // ...resto de tu lógica de dependencias...
+    // --- SISTEMAS FITOSANITARIOS: solo si la primera está respondida ---
+    if (question.Orden >= 188 && question.Orden <= 190) {
+      const primeraFitosanitarios = localFormData["ba3d6a21-2f5d-4d19-8400-eb0f1f95d6d5"];
+      if (!primeraFitosanitarios) return false;
+    }
+
+    // --- CARROS DE TRABAJO (191-205): solo si la primera está respondida ---
+    if (question.Orden >= 192 && question.Orden <= 205) {
+      const primeraPreguntaNuevoBloque = localFormData["32095b26-8a0f-48e5-bf65-e85056548310"];
+      if (!primeraPreguntaNuevoBloque) return false;
+    }
+
+    // --- PRESUPUESTAR COMPLEMENTOS SEMILLERO (206-214): solo si la primera está respondida ---
+    if (question.Orden >= 207 && question.Orden <= 214) {
+      const primeraPreguntaSemillero = localFormData["0b39128b-0d61-428a-bb50-e6828b93cdda"];
+      if (!primeraPreguntaSemillero) return false;
+    }
+
     return true;
   }, [localFormData]);
 
@@ -258,15 +281,71 @@ function FormularioManual({ formData = {}, onFormChange }) {
 
       case 3: { // SingleSelection
         const questionAnswers = answers[IDQuestion] || [];
+        const rawValueFromState = localFormData[IDQuestion];
+        let valueForSelect = ''; // Valor que finalmente usaremos para el <select>
+
+        // --- DEBUGGING LOGS ---
+        console.log(`--- Debugging Select for Question ID: ${IDQuestion} (${Description}) ---`);
+        console.log(`Raw value from localFormData:`, rawValueFromState, `(Type: ${typeof rawValueFromState})`);
+        console.log(`Available options (questionAnswers):`, JSON.stringify(questionAnswers)); // Log como JSON para ver estructura clara
+        // --- END DEBUGGING LOGS ---
+
+        if (rawValueFromState !== undefined && rawValueFromState !== null) {
+          // Convertir a string y quitar espacios al inicio/final
+          const rawValueStr = String(rawValueFromState).trim();
+
+          // --- DEBUGGING LOGS ---
+          console.log(`Value as string (trimmed): "${rawValueStr}"`);
+          // --- END DEBUGGING LOGS ---
+
+          // 1. Intentar encontrar una opción cuya Descripción coincida (insensible a mayúsculas/minúsculas y espacios)
+          const optionMatchingDescription = questionAnswers.find(
+            ans => ans.Description && String(ans.Description).trim().toLowerCase() === rawValueStr.toLowerCase()
+          );
+
+          if (optionMatchingDescription) {
+            valueForSelect = String(optionMatchingDescription.CodAnswer);
+            // --- DEBUGGING LOGS ---
+            console.log(`✅ Match found by Description: "${optionMatchingDescription.Description}". Setting valueForSelect to CodAnswer: "${valueForSelect}"`);
+            // --- END DEBUGGING LOGS ---
+          } else {
+            // 2. Si no hay coincidencia por descripción, verificar si el valor guardado ya es un CodAnswer válido (como string)
+            const optionMatchingCodAnswer = questionAnswers.find(
+              ans => String(ans.CodAnswer) === rawValueStr
+            );
+            if (optionMatchingCodAnswer) {
+              valueForSelect = rawValueStr;
+              // --- DEBUGGING LOGS ---
+              console.log(`✅ Match found by CodAnswer: "${rawValueStr}". Using this value for valueForSelect.`);
+              // --- END DEBUGGING LOGS ---
+            } else {
+              // --- DEBUGGING LOGS ---
+              console.log(`❌ No match found by Description or CodAnswer. valueForSelect remains empty.`);
+              // --- END DEBUGGING LOGS ---
+            }
+          }
+        } else {
+            // --- DEBUGGING LOGS ---
+            console.log(`ℹ️ Raw value is undefined or null. valueForSelect remains empty.`);
+            // --- END DEBUGGING LOGS ---
+        }
+
+        // Encontrar la opción seleccionada para mostrar la imagen (si aplica)
         const selectedAnswer = questionAnswers.find(
-          ans => String(ans.CodAnswer) === String(localFormData[IDQuestion])
+          ans => String(ans.CodAnswer) === valueForSelect
         );
+
+        // --- DEBUGGING LOGS ---
+        console.log(`➡️ Final valueForSelect passed to <select>: "${valueForSelect}"`);
+        console.log(`--- End Debugging Select ---`);
+        // --- END DEBUGGING LOGS ---
+
         return (
           <div>
             <select
               id={`question-${IDQuestion}`}
               className="form-control"
-              value={localFormData[IDQuestion] || ''}
+              value={valueForSelect} // Usar el valor determinado
               onChange={(e) => handleInputChange(IDQuestion, e.target.value)}
               required={question.Required === true}
               disabled={question.Disabled === true}
@@ -279,7 +358,7 @@ function FormularioManual({ formData = {}, onFormChange }) {
               {questionAnswers.map((answer) => (
                 <option
                   key={answer.IDAnswer}
-                  value={answer.CodAnswer}
+                  value={String(answer.CodAnswer)} // El valor de la opción siempre es el CodAnswer como string
                 >
                   {answer.Description}
                 </option>
@@ -303,6 +382,15 @@ function FormularioManual({ formData = {}, onFormChange }) {
       default:
         return <p className="text-muted">Tipo de campo no soportado: {Type}</p>;
     }
+  };
+
+  // Función auxiliar para verificar si un campo está realmente completado
+  const isFieldCompleted = (value) => {
+    if (value === undefined || value === null) return false;
+    if (value === '') return false;
+    if (Array.isArray(value) && value.length === 0) return false;
+    if (typeof value === 'object' && Object.keys(value).length === 0) return false;
+    return true;
   };
 
   // Renderizar el componente según el estado
@@ -340,16 +428,33 @@ function FormularioManual({ formData = {}, onFormChange }) {
                   conjuntoClass = 'pantalla-question';
                 } else if (question.Orden >= 67 && question.Orden <= 98) {
                   conjuntoClass = 'riego-question';
+                } else if (question.Orden >= 99 && question.Orden <= 114) {
+                  conjuntoClass = 'recogida-drenajes-question';
+                } else if (question.Orden === 115) { // <-- Añadir este bloque para la pregunta 115
+                  conjuntoClass = 'almacenamiento-agua-trigger-question';
                 } else if (question.Orden >= 116 && question.Orden <= 122) {
                   conjuntoClass = 'deposito-chapa-question';
                 } else if (question.Orden >= 123 && question.Orden <= 130) {
                   conjuntoClass = 'revestimiento-embalse-question';
-                } else if (question.Orden >= 131 && question.Orden <= 137) {
+                } else if (question.Orden === 131) { // Asegúrate que este sea solo para 131 si es el final
                   conjuntoClass = 'osmosis-question';
+                } else if (question.Orden >= 187 && question.Orden <= 190) {
+                  conjuntoClass = 'sistemas-fitosanitarios-question';
+                } else if (question.Orden >= 191 && question.Orden <= 205) {
+                  conjuntoClass = 'nuevo-bloque-question';
+                } else if (question.Orden >= 206 && question.Orden <= 214) {
+                  conjuntoClass = 'presupuestar-semillero-question';
                 }
 
                 return (
-                  <div key={question.IDQuestion} className={`form-question-card ${conjuntoClass}`}>
+                  <div 
+                    key={question.IDQuestion} 
+                    className={`form-question-card ${conjuntoClass} ${
+                      question.Required ? 
+                        (isFieldCompleted(localFormData[question.IDQuestion]) ? 'required-answered' : 'required-unanswered') 
+                        : ''
+                    }`}
+                  >
                     <div className="form-question-content">
                       <div className="form-group">
                         <label htmlFor={`question-${question.IDQuestion}`}>
