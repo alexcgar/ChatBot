@@ -108,6 +108,26 @@ html, body, #root, .App, .container-fluid, .main-row {
   font-style: italic;
 }
 
+.message.auto-completed {
+  background-color: #e6f7e6 !important; /* Verde pálido */
+  border-left: 3px solid #6abe6a !important; /* Borde izquierdo verde */
+  position: relative;
+}
+
+.message.auto-completed::after {
+  content: "Autocompletado";
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-size: 10px;
+  font-weight: bold;
+  color: #5a9e5a;
+  background-color: #d1ebd1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  opacity: 0.8;
+}
+
 .current-question-text {
   background-color: #e9f0f7;
   color: var(--text-color);
