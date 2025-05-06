@@ -14,7 +14,8 @@ export const formSections = [
     color: '#3498db',
     orderRanges: [
       { min: 1, max: 6 },
-      { min: 215, max: 218 }
+      { min: 215, max: 218 },
+      { min: 223, max: 223 }
     ],
     expanded: true,
     idFirstQuestion: null
