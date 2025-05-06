@@ -1,9 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import Chatbot from './components/ChatBot/ChatBot';
 import FormularioManual from './components/FormularioManual/FormularioManual';
+import ChatBot from './components/ChatBot/ChatBot';
 import { fetchPreguntas } from './services/api';
-import { FaComments, FaTimes } from 'react-icons/fa';
+// eslint-disable-next-line no-unused-vars
+import { AnimatePresence, motion } from 'framer-motion';
+import { FaRobot, FaTimes } from 'react-icons/fa';
 import './App.css';
+
+// Componente para el botón de chat
+const ChatButton = ({ onClick, isOpen }) => {
+  return (
+    <button 
+      className="chat-button" 
+      onClick={onClick}
+      aria-label={isOpen ? "Cerrar asistente" : "Abrir asistente"}
+      title={isOpen ? "Cerrar asistente" : "Abrir asistente"}
+    >
+      {isOpen ? <FaTimes /> : <FaRobot />}
+    </button>
+  );
+};
 
 function App() {
   const [questions, setQuestions] = useState([]);
@@ -32,9 +48,16 @@ function App() {
     loadQuestions();
   }, []);
 
-  const handleUpdateFormData = (newData) => {
-    setFormData(prev => ({ ...prev, ...newData }));
+  // Función para alternar el estado del chat con debug
+  const toggleChat = () => {
+    console.log("Toggling chat, current state:", isChatOpen);
+    setIsChatOpen(prevState => !prevState);
   };
+
+  // Efecto para verificar cambios en el estado del chat
+  useEffect(() => {
+    console.log("Chat open state changed to:", isChatOpen);
+  }, [isChatOpen]);
 
   if (isLoading) {
     return <div className="text-center mt-5">Cargando preguntas…</div>;
@@ -44,38 +67,32 @@ function App() {
   }
 
   return (
-    <div className="container-fluid">
-      <FormularioManual
+    <div className="app-container">
+      <FormularioManual 
+        formData={formData} 
         questions={questions}
-        formData={formData}
-        onFormChange={handleUpdateFormData}
+        onFormChange={(newData) => setFormData({...formData, ...newData})}
       />
-
-      {/* Burbuja flotante del chat */}
-      <div className={`chat-bubble ${isChatOpen ? 'open' : 'closed'}`}>
-        {/* Botón siempre visible cuando está cerrado */}
-        <div className={`chat-bubble-button ${isChatOpen ? 'hidden' : ''}`} onClick={() => setIsChatOpen(true)}>
-          <FaComments />
-        </div>
-
-        {/* Contenedor del chat siempre montado, visibilidad controlada por CSS */}
-        <div className={`chat-bubble-container ${isChatOpen ? '' : 'hidden'}`}>
-          <div className="chat-bubble-header">
-            <h4>Asistente Virtual</h4>
-            <button className="chat-close-button" onClick={() => setIsChatOpen(false)}>
-              <FaTimes />
-              
-            </button>
-          </div>
-          <div className="chat-bubble-content">
-            <Chatbot
-              questions={questions}
-              formData={formData}
-              onUpdateFormData={handleUpdateFormData}
-            />
-          </div>
-        </div>
+      
+      {/* ChatBot siempre renderizado, pero con visibilidad controlada */}
+      <div className={`chatbot-container ${isChatOpen ? 'visible' : 'hidden'}`}>
+        <ChatBot 
+          questions={questions}
+          onUpdateFormData={(newData) => {
+            console.log("Updating form data from ChatBot", newData);
+            setFormData({...formData, ...newData});
+          }}
+          formData={formData}
+          onClose={toggleChat}
+          isVisible={isChatOpen} // Pasar el estado de visibilidad
+        />
       </div>
+      
+      {/* Botón de chat mejorado */}
+      <ChatButton 
+        onClick={toggleChat} 
+        isOpen={isChatOpen} 
+      />
     </div>
   );
 }

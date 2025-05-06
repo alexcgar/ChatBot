@@ -48,7 +48,7 @@ const FormSection = ({
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <div className="questions-grid">
+            <div className="questions-grid p-2">
               {questions.map(question => (
                 <div 
                   key={question.IDQuestion} 
@@ -58,7 +58,7 @@ const FormSection = ({
                       : ''
                   }`}
                 >
-                  <div className="question-content">
+                  <div className="question-content p-2">
                     <div className="form-group">
                       <label htmlFor={`question-${question.IDQuestion}`}>
                         {question.Description}

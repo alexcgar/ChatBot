@@ -13,17 +13,23 @@ function FormularioManual({ formData = {}, onFormChange }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [selectedSectionId, setSelectedSectionId] = useState(null);
 
-  // Mover isFieldCompleted aquí, antes de ser utilizada en cualquier otro lugar
-  const isFieldCompleted = (value) => {
+  useEffect(() => {
+    console.log("FormularioManual received new formData:", formData);
+  }, [formData]);
+
+  const isFieldCompleted = useCallback((value) => {
     if (value === undefined || value === null) return false;
     if (value === '') return false;
     if (Array.isArray(value) && value.length === 0) return false;
-    if (typeof value === 'object' && Object.keys(value).length === 0) return false;
     return true;
-  };
+  }, []);
 
-  // Sincronizar con los datos externos cuando cambien
+  const shouldShowQuestion = useCallback(() => {
+    return true;
+  }, []);
+
   useEffect(() => {
     setLocalFormData(formData);
   }, [formData]);
@@ -32,318 +38,222 @@ function FormularioManual({ formData = {}, onFormChange }) {
     const cargarPreguntas = async () => {
       try {
         setIsLoading(true);
-
         const apiResponse = await fetchPreguntas();
-        console.log('Respuesta completa de la API:', apiResponse);
-
         let preguntasArray = [];
         if (Array.isArray(apiResponse)) {
           preguntasArray = apiResponse;
         } else if (apiResponse && Array.isArray(apiResponse.data)) {
           preguntasArray = apiResponse.data;
         }
+        const sortedQuestions = preguntasArray
+          .filter(item => item && typeof item === 'object' && 'IDQuestion' in item && typeof item.Orden === 'number')
+          .sort((a, b) => a.Orden - b.Orden);
 
-        if (!preguntasArray.length) {
-          throw new Error('No se recibieron preguntas');
+        setQuestions(sortedQuestions);
+
+        // Siempre intentar iniciar con "datos-generales"
+        const datosGeneralesId = 'datos-generales';
+        const datosGeneralesSection = formSections.find(s => s.id === datosGeneralesId);
+        
+        // Verificar primero si "datos-generales" tiene preguntas
+        const hasGeneralQuestions = datosGeneralesSection && 
+          sortedQuestions.some(q => 
+            datosGeneralesSection.orderRanges.some(range => 
+              q.Orden >= range.min && q.Orden <= range.max) && 
+            shouldShowQuestion(q)
+          );
+        
+        // Si tiene preguntas, seleccionarla; de lo contrario usar la lógica anterior
+        if (hasGeneralQuestions) {
+          setSelectedSectionId(datosGeneralesId);
+        } else {
+          // Lógica original para buscar la primera sección con preguntas
+          let firstSectionWithQuestionsId = null;
+          for (const section of formSections) {
+            const sectionQuestions = sortedQuestions.filter(q =>
+              section.orderRanges.some(range => q.Orden >= range.min && q.Orden <= range.max) &&
+              shouldShowQuestion(q)
+            );
+            if (sectionQuestions.length > 0) {
+              firstSectionWithQuestionsId = section.id;
+              break;
+            }
+          }
+          setSelectedSectionId(firstSectionWithQuestionsId);
         }
-
-        const questionsData = preguntasArray.filter(item => 'IDQuestion' in item);
-        console.log('Preguntas filtradas:', questionsData);
 
         const answersMap = {};
-
-        preguntasArray.forEach(item => {
-          if (item.Answers && Array.isArray(item.Answers) && item.Answers.length > 0) {
+        sortedQuestions.forEach(item => {
+          if (item.Answers && Array.isArray(item.Answers)) {
             answersMap[item.IDQuestion] = item.Answers;
           }
-
-          if (item.answers && Array.isArray(item.answers) && item.answers.length > 0) {
-            answersMap[item.IDQuestion] = item.answers;
-          }
         });
-
-        if (apiResponse && apiResponse.answers && typeof apiResponse.answers === 'object') {
-          Object.keys(apiResponse.answers).forEach(questionId => {
-            answersMap[questionId] = apiResponse.answers[questionId];
-          });
-        }
-
-        console.log('Respuestas encontradas:', answersMap);
-        console.log('Número de preguntas con respuestas:', Object.keys(answersMap).length);
-
-        setQuestions(questionsData);
         setAnswers(answersMap);
-        setIsLoading(false);
       } catch (err) {
-        console.error('Error completo:', err);
-        setError('Error al cargar las preguntas: ' + err.message);
+        console.error("Error al cargar preguntas:", err);
+        setError(err.message || 'Error cargando las preguntas del formulario.');
+      } finally {
         setIsLoading(false);
       }
     };
-
     cargarPreguntas();
-  }, []);
+  }, [shouldShowQuestion]);
 
-  const handleInputChange = (questionId, value) => {
-    const updatedData = {
-      ...localFormData,
-      [questionId]: value
-    };
+  const questionsBySections = useMemo(() => {
+    const sectionsMap = {};
+    formSections.forEach(section => {
+      sectionsMap[section.id] = questions.filter(
+        q =>
+          section.orderRanges.some(range => q.Orden >= range.min && q.Orden <= range.max) &&
+          shouldShowQuestion(q)
+      );
+    });
+    return sectionsMap;
+  }, [questions, shouldShowQuestion]);
 
-    setLocalFormData(updatedData);
+  const handleInputChange = useCallback((e) => {
+    const { name, value, type, checked } = e.target;
+    const questionId = name.replace('question-', '');
 
-    if (onFormChange) {
-      onFormChange({ [questionId]: value });
+    setLocalFormData(prevData => {
+      const newData = { ...prevData };
+      if (type === 'checkbox') {
+        newData[questionId] = checked;
+      } else if (type === 'radio') {
+        newData[questionId] = value === 'true';
+      } else if (type === 'select-one') {
+        // Asegurarse de que el valor del select se procese correctamente
+        newData[questionId] = value;
+        
+        // Debug para ver qué valor se está guardando
+        console.log(`Select value for ${questionId}:`, value);
+      } else {
+        newData[questionId] = value;
+      }
+      if (onFormChange) {
+        onFormChange({ [questionId]: newData[questionId] });
+      }
+      return newData;
+    });
+  }, [onFormChange]);
+
+  const renderField = useCallback((question) => {
+    const questionId = question.IDQuestion;
+    const value = localFormData[questionId] ?? '';
+    
+    // Añade esto para debug
+    if (question.Type === 3) {
+      console.log(`Rendering select field ${questionId}:`, {
+        selectedValue: value,
+        availableOptions: answers[questionId]?.map(a => ({desc: a.Description, value: a.CodAnswer})) || []
+      });
     }
-  };
+
+    if (question.Type === 3 && answers[questionId]) {
+      // Convertir value a string para comparación consistente
+      const stringValue = value.toString();
+      
+      return (
+        <select
+          id={`question-${questionId}`}
+          name={`question-${questionId}`}
+          className="form-control"
+          value={stringValue}
+          onChange={handleInputChange}
+        >
+          <option value="">-- Selecciona --</option>
+          {answers[questionId].map(ans => (
+            <option 
+              key={ans.CodAnswer} 
+              value={ans.CodAnswer.toString()} // Asegurar que sea string
+            >
+              {ans.Description}
+            </option>
+          ))}
+        </select>
+      );
+    } else if (question.Type === 10) {
+      return (
+        <div className="si-no-options">
+          <div className="form-check form-check-inline">
+            <input
+              className="form-check-input" type="radio"
+              name={`question-${questionId}`} id={`question-${questionId}-si`}
+              value="true" checked={value === true} onChange={handleInputChange}
+            />
+            <label className="form-check-label" htmlFor={`question-${questionId}-si`}>Sí</label>
+          </div>
+          <div className="form-check form-check-inline">
+            <input
+              className="form-check-input" type="radio"
+              name={`question-${questionId}`} id={`question-${questionId}-no`}
+              value="false" checked={value === false} onChange={handleInputChange}
+            />
+            <label className="form-check-label" htmlFor={`question-${questionId}-no`}>No</label>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <input
+        type="text"
+        id={`question-${questionId}`}
+        name={`question-${questionId}`}
+        className="form-control"
+        value={value}
+        onChange={handleInputChange}
+        placeholder={question.Comment || ''}
+      />
+    );
+  }, [localFormData, answers, handleInputChange]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const requiredQuestions = questions.filter(q => q.Required === true);
-    const missingRequired = requiredQuestions.filter(q =>
-      !localFormData[q.IDQuestion] || localFormData[q.IDQuestion] === ""
-    );
-
-    if (missingRequired.length > 0) {
-      setError(`Por favor complete los siguientes campos obligatorios: ${missingRequired.map(q => q.Description).join(", ")}`);
-      return;
-    }
-
+    setIsLoading(true);
+    setError(null);
     try {
-      setIsLoading(true);
+      const dataToSend = {};
+      questions.forEach(q => {
+        if (shouldShowQuestion(q) && localFormData[q.IDQuestion] !== undefined) {
+          dataToSend[q.IDQuestion] = localFormData[q.IDQuestion];
+        }
+      });
 
-      await enviarRespuestas(localFormData);
-
+      console.log("Enviando datos:", dataToSend);
+      await enviarRespuestas(dataToSend);
       setIsSuccess(true);
     } catch (err) {
-      setError('Error al enviar el formulario: ' + err.message);
+      console.error("Error al enviar formulario:", err);
+      setError(err.message || 'Error al enviar las respuestas.');
+      setIsSuccess(false);
     } finally {
       setIsLoading(false);
     }
   };
 
   const resetForm = () => {
-    const emptyForm = {};
-    setLocalFormData(emptyForm);
+    setLocalFormData({});
+    setIsSuccess(false);
+    setError(null);
+    let firstSectionWithQuestionsId = null;
+    for (const section of formSections) {
+        const sectionQuestions = questions.filter(q =>
+            section.orderRanges.some(range => q.Orden >= range.min && q.Orden <= range.max) &&
+            shouldShowQuestion(q)
+        );
+        if (sectionQuestions.length > 0) {
+            firstSectionWithQuestionsId = section.id;
+            break;
+        }
+    }
+    setSelectedSectionId(firstSectionWithQuestionsId);
 
     if (onFormChange) {
-      onFormChange(emptyForm);
-    }
-
-    setIsSuccess(false);
-  };
-
-  const shouldShowQuestion = useCallback((question) => {
-    if (question.IDQuestion === "a3c6c678-3a65-495e-b36f-f345ca8e1af4") return true;
-    if (question.IDQuestion === "1b580d4e-d2c2-4845-9ac3-7bdd643a4667") return true;
-    if (question.IDQuestion === "c28fe531-847d-4160-9aeb-da32e0c81a09") return true;
-    if (question.IDQuestion === "8aa4b5aa-b756-4990-9194-52262f38c2a5") return true;
-    if (question.IDQuestion === "12ada762-d944-4faf-a148-b5bb6b62d149") return true;
-    if (question.IDQuestion === "731c8a1a-b730-4902-903f-a7de15502244") return true;
-
-    if (question.Orden >= 7 && question.Orden <= 58) {
-      const modeloInvernadero = localFormData["a3c6c678-3a65-495e-b36f-f345ca8e1af4"];
-      if (!modeloInvernadero) return false;
-    }
-    if (question.Orden >= 59 && question.Orden <= 67) {
-      const tipoPantalla = localFormData["c28fe531-847d-4160-9aeb-da32e0c81a09"];
-      if (!tipoPantalla) return false;
-    }
-    if (question.Orden >= 68 && question.Orden <= 98) {
-      const tipoRiego = localFormData["1b580d4e-d2c2-4845-9ac3-7bdd643a4667"];
-      if (!tipoRiego) return false;
-    }
-    if (question.Orden >= 100 && question.Orden <= 114) {
-      const primeraPreguntaDrenajes = localFormData["9701d818-fe0d-4c39-9eb3-0d6ed70cb252"];
-      if (!primeraPreguntaDrenajes) return false;
-    }
-    if (question.Orden >= 116 && question.Orden <= 122) {
-      const primerDeposito = localFormData["8aa4b5aa-b756-4990-9194-52262f38c2a5"];
-      if (!primerDeposito) return false;
-    }
-    if (question.Orden >= 123 && question.Orden <= 130) {
-      const revestimientoEmbalse = localFormData["12ada762-d944-4faf-a148-b5bb6b62d149"];
-      if (!revestimientoEmbalse) return false;
-    }
-    if (question.Orden >= 116 && question.Orden <= 131) {
-      const primeraPreguntaAgua = localFormData["10ef21b9-162d-4e3e-b63a-c5756e48d0ea"];
-      if (!primeraPreguntaAgua) return false;
-    }
-    if (question.Orden >= 131 && question.Orden <= 137) {
-      const primerOsmosis = localFormData["731c8a1a-b730-4902-903f-a7de15502244"];
-      if (!primerOsmosis) return false;
-    }
-    if (question.Orden >= 188 && question.Orden <= 190) {
-      const primeraFitosanitarios = localFormData["ba3d6a21-2f5d-4d19-8400-eb0f1f95d6d5"];
-      if (!primeraFitosanitarios) return false;
-    }
-    if (question.Orden >= 192 && question.Orden <= 205) {
-      const primeraPreguntaNuevoBloque = localFormData["32095b26-8a0f-48e5-bf65-e85056548310"];
-      if (!primeraPreguntaNuevoBloque) return false;
-    }
-    if (question.Orden >= 207 && question.Orden <= 214) {
-      const primeraPreguntaSemillero = localFormData["0b39128b-0d61-428a-bb50-e6828b93cdda"];
-      if (!primeraPreguntaSemillero) return false;
-    }
-
-    return true;
-  }, [localFormData]);
-
-  const questionsBySections = useMemo(() => {
-    const sortedQuestions = [...questions].sort((a, b) => a.Orden - b.Orden);
-    const sectionsWithQuestions = {};
-
-    formSections.forEach(section => {
-      sectionsWithQuestions[section.id] = sortedQuestions.filter(
-        q => q.Orden >= section.minOrder && 
-             q.Orden <= section.maxOrder && 
-             shouldShowQuestion(q)
-      );
-    });
-
-    return sectionsWithQuestions;
-  }, [questions, shouldShowQuestion]);
-
-  const formStats = useMemo(() => {
-    const totalQuestions = questions.filter(q => shouldShowQuestion(q)).length;
-    const answeredQuestions = questions.filter(
-      q => shouldShowQuestion(q) && isFieldCompleted(localFormData[q.IDQuestion])
-    ).length;
-
-    return {
-      total: totalQuestions,
-      answered: answeredQuestions,
-      percent: totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0
-    };
-  }, [questions, shouldShowQuestion, localFormData]);
-
-  const renderField = (question) => {
-    const { IDQuestion, Type, Description } = question;
-
-    switch (Type) {
-      case 0:
-        return (
-          <input
-            type="text"
-            id={`question-${IDQuestion}`}
-            className="form-control"
-            value={localFormData[IDQuestion] || ''}
-            onChange={(e) => handleInputChange(IDQuestion, e.target.value)}
-            required={question.Required === true}
-            disabled={question.Disabled === true}
-          />
-        );
-
-      case 1:
-        return (
-          <div className="si-no-options">
-            <div className="form-check form-check-inline">
-              <input
-                type="radio"
-                id={`question-${IDQuestion}-si`}
-                name={`question-${IDQuestion}`}
-                className="form-check-input"
-                value="1"
-                checked={localFormData[IDQuestion] === "1"}
-                onChange={(e) => handleInputChange(IDQuestion, e.target.value)}
-                required={question.Required === true}
-                disabled={question.Disabled === true}
-              />
-              <label className="form-check-label" htmlFor={`question-${IDQuestion}-si`}>
-                Sí
-              </label>
-            </div>
-            <div className="form-check form-check-inline">
-              <input
-                type="radio"
-                id={`question-${IDQuestion}-no`}
-                name={`question-${IDQuestion}`}
-                className="form-check-input"
-                value="0"
-                checked={localFormData[IDQuestion] === "0"}
-                onChange={(e) => handleInputChange(IDQuestion, e.target.value)}
-                required={question.Required === true}
-                disabled={question.Disabled === true}
-              />
-              <label className="form-check-label" htmlFor={`question-${IDQuestion}-no`}>
-                No
-              </label>
-            </div>
-          </div>
-        );
-
-      case 3: {
-        const questionAnswers = answers[IDQuestion] || [];
-        const rawValueFromState = localFormData[IDQuestion];
-        let valueForSelect = '';
-
-        if (rawValueFromState !== undefined && rawValueFromState !== null) {
-          const rawValueStr = String(rawValueFromState).trim();
-
-          const optionMatchingDescription = questionAnswers.find(
-            ans => ans.Description && String(ans.Description).trim().toLowerCase() === rawValueStr.toLowerCase()
-          );
-
-          if (optionMatchingDescription) {
-            valueForSelect = String(optionMatchingDescription.CodAnswer);
-          } else {
-            const optionMatchingCodAnswer = questionAnswers.find(
-              ans => String(ans.CodAnswer) === rawValueStr
-            );
-            if (optionMatchingCodAnswer) {
-              valueForSelect = rawValueStr;
-            }
-          }
-        }
-
-        const selectedAnswer = questionAnswers.find(
-          ans => String(ans.CodAnswer) === valueForSelect
-        );
-
-        return (
-          <div>
-            <select
-              id={`question-${IDQuestion}`}
-              className="form-control"
-              value={valueForSelect}
-              onChange={(e) => handleInputChange(IDQuestion, e.target.value)}
-              required={question.Required === true}
-              disabled={question.Disabled === true}
-            >
-              <option value="">
-                {questionAnswers.length === 0
-                  ? "No hay opciones disponibles"
-                  : "Seleccione una opción"}
-              </option>
-              {questionAnswers.map((answer) => (
-                <option
-                  key={answer.IDAnswer}
-                  value={String(answer.CodAnswer)}
-                >
-                  {answer.Description}
-                </option>
-              ))}
-            </select>
-            {selectedAnswer && selectedAnswer.Images && selectedAnswer.Images.length > 0 && (
-              <div style={{ marginTop: 10 }}>
-                <img
-                  src={`data:image/png;base64,${selectedAnswer.Images[0]}`}
-                  alt={selectedAnswer.Description}
-                  style={{ width: 500, height: 200, objectFit: 'contain', border: '1px solid #eee', borderRadius: 8 }}
-                />
-              </div>
-            )}
-          </div>
-        );
-      }
-
-      default:
-        return <p className="text-muted">Tipo de campo no soportado: {Type}</p>;
+      onFormChange({});
     }
   };
 
-  if (isLoading) {
+  if (isLoading && questions.length === 0) {
     return (
       <div className="form-loading-container">
         <div className="loading-spinner"></div>
@@ -367,7 +277,7 @@ function FormularioManual({ formData = {}, onFormChange }) {
 
   if (isSuccess) {
     return (
-      <motion.div 
+      <motion.div
         className="form-success-container"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -375,7 +285,7 @@ function FormularioManual({ formData = {}, onFormChange }) {
       >
         <div className="success-icon">✓</div>
         <h2>¡Formulario enviado con éxito!</h2>
-        <p>Gracias por completar el formulario. Su solicitud ha sido registrada.</p>
+        <p>Gracias por completar el formulario.</p>
         <button onClick={resetForm} className="btn-primary">
           Completar otro formulario
         </button>
@@ -385,41 +295,78 @@ function FormularioManual({ formData = {}, onFormChange }) {
 
   return (
     <div className="formulario-manual-container">
+      <div className="form-sidebar">
+        <div className="sidebar-header">
+          <h4>Secciones del Formulario</h4>
+        </div>
+        <ul>
+          {formSections.map(section => {
+            const Icon = section.icon;
+            const sectionQuestions = questionsBySections[section.id] || [];
+            const hasQuestions = sectionQuestions.length > 0;
 
-      <form onSubmit={handleSubmit} className="form-with-sections">
-        <div className="form-sections-container">
-          {formSections.map(section => (
-            <FormSection
-              key={section.id}
-              section={section}
-              questions={questionsBySections[section.id] || []}
-              formData={localFormData}
-              handleInputChange={handleInputChange}
-              answers={answers}
-              renderField={renderField}
-              isFieldCompleted={isFieldCompleted}
-            />
-          ))}
-          
+            if (!hasQuestions) return null;
+
+            return (
+              <li
+                key={section.id}
+                className={selectedSectionId === section.id ? 'active' : ''}
+                onClick={() => setSelectedSectionId(section.id)}
+                title={section.description}
+              >
+                {Icon && <Icon className="sidebar-icon" />}
+                {section.title}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      <div className="form-main-content">
+        <form onSubmit={handleSubmit} className="form-with-sections">
+          <div className="form-sections-container">
+            {formSections
+              .filter(section => section.id === selectedSectionId)
+              .map(section => {
+                const sectionQuestions = questionsBySections[section.id] || [];
+                if (sectionQuestions.length === 0) return null;
+
+                return (
+                  <FormSection
+                    key={section.id}
+                    section={section}
+                    questions={sectionQuestions}
+                    formData={localFormData}
+                    renderField={renderField}
+                    isFieldCompleted={isFieldCompleted}
+                  />
+                );
+              })}
+
+            {selectedSectionId && (questionsBySections[selectedSectionId] || []).length === 0 && (
+              <div className="no-questions">
+                No hay preguntas visibles para la sección seleccionada.
+              </div>
+            )}
+            {!selectedSectionId && !isLoading && (
+              <div className="no-questions">
+                No hay secciones con preguntas disponibles.
+              </div>
+            )}
+          </div>
+
           <div className="form-actions">
+           
             <button
               type="submit"
               className="btn-submit"
-              disabled={isLoading || formStats.total === 0}
+              disabled={isLoading || !selectedSectionId || (questionsBySections[selectedSectionId] || []).length === 0}
             >
-              Enviar formulario
-            </button>
-            <button
-              type="button"
-              className="btn-reset"
-              onClick={resetForm}
-              disabled={isLoading}
-            >
-              Limpiar formulario
+              {isLoading ? 'Enviando...' : 'Enviar Formulario'}
             </button>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

@@ -1,306 +1,137 @@
-.formulario-manual {
-  width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
+/* --- NUEVO LAYOUT PRINCIPAL --- */
 
-/* Estilos de base y reset */
+/* Contenedor principal - ocupar toda la altura */
 .formulario-manual-container {
+  display: flex;
+  min-height: 100vh; /* Cambio de height:100vh a min-height para extender si es necesario */
   width: 100%;
-  max-width: 1800px;
-  margin: 0 auto;
-  padding: 20px;
+  background-color: #f5f7fa; /* Cambio a un color más suave */
+  position: relative;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: #333;
-  max-height: 100%;
-  overflow-y: auto !important; /* Forzar scroll vertical cuando sea necesario */
 }
 
-/* Barra de progreso global */
-.form-progress-bar {
-  background-color: #f8f9fa;
-  border-radius: 10px;
-  padding: 15px 20px;
-  margin-bottom: 25px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-}
-
-.progress-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.progress-info h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.progress-info p {
-  margin: 0;
-  font-size: 14px;
-  color: #666;
-}
-
-.progress {
-  height: 8px;
-  border-radius: 4px;
-  background-color: #e9ecef;
-  overflow: hidden;
-}
-
-.progress-bar {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.6s ease;
-  text-align: right;
-  padding-right: 5px;
-  font-size: 10px;
-  line-height: 8px;
-  color: transparent;
-}
-
-/* Contenedor principal con línea temporal */
-.form-container {
-  position: relative;
+/* Barra lateral mejorada - alargar más */
+.form-sidebar {
+  width: 280px;
+  min-height: 100vh; /* Cambio de height a min-height para extender */
+  background: linear-gradient(to bottom, #fff, #f8f9fb);
+  border-right: 1px solid #e0e0e0;
+  padding: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding: 20px 10px;
-  gap: 0;
-  min-height: 200px;
-}
-
-/* Línea vertical para el efecto timeline */
-.form-container::after {
-  content: '';
-  position: absolute;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+  z-index: 10;
+  position: sticky; /* Mantenerla fija al hacer scroll */
   top: 0;
-  bottom: 0;
-  left: 20px;
-  width: 2px;
-  background-color: #3498db;
-  z-index: 1;
 }
 
-/* Layout de los elementos del formulario */
-.form-grid {
+.sidebar-header {
+  padding: 18px 20px;
+  border-bottom: 1px solid #e6e9f0;
+  background-color: #ffffff;
+}
+
+.sidebar-header h4 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #2c3e50; /* Corrección del color del texto */
+}
+
+.form-sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex-grow: 1;
+}
+
+.form-sidebar li {
+  padding: 14px 22px;
+  cursor: pointer;
+  border-left: 4px solid transparent;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+  color: #555;
   display: flex;
-  flex-direction: column;
-  gap: 15px;
-  position: relative;
-  padding-left: 30px;
-}
-
-/* Tarjeta individual de pregunta */
-.form-question-card {
-  position: relative;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  transition: transform 0.2s, box-shadow 0.2s;
-  border-left: 4px solid #3498db;
-  margin-left: 20px;
-}
-
-/* Ajusta los bordes de las subsecciones si es necesario para que no se solapen */
-.deposito-chapa-question,
-.revestimiento-embalse-question,
-.osmosis-question {
-  border-left-width: 4px; /* Mantener el grosor del borde izquierdo */
-  /* Puedes ajustar otros bordes si quieres un efecto diferente */
-}
-
-/* Círculo conectando con la línea vertical */
-.form-question-card::before {
-  content: '';
-  position: absolute;
-  left: -32px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  background-color: #3498db;
-  border-radius: 50%;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 2px #3498db;
-  z-index: 2;
-}
-
-/* Línea horizontal conectando el círculo con la tarjeta */
-.form-question-card::after {
-  content: '';
-  position: absolute;
-  left: -17px;
-  top: 50%;
-  width: 17px;
-  height: 2px;
-  background-color: #3498db;
-  transform: translateY(-50%);
-}
-
-.form-question-card:hover {
-  transform: translateX(5px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-}
-
-.form-question-content {
-  padding: 5px;
-}
-
-/* Estilos para los grupos de formulario */
-.form-group {
-  margin-bottom: 15px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
-  color: #333;
-}
-
-.form-control {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-  transition: border-color 0.2s;
-}
-
-.form-control:focus {
-  border-color: #3498db;
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-}
-
-/* Estilos para selects */
-select.form-control {
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 16px;
-  padding-right: 35px;
-  appearance: none;
-}
-
-/* Contenedor del botón de envío */
-.submit-container {
-  margin-top: 30px;
-  padding-left: 50px;
+  align-items: center;
+  gap: 12px;
   position: relative;
 }
 
-/* Botón de envío */
-.btn-primary {
-  background-color: #3498db;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 12px 25px;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.btn-primary:hover {
-  background-color: #2980b9;
-}
-
-.btn-primary:disabled {
-  background-color: #b3b3b3;
-  cursor: not-allowed;
-}
-
-/* Mensaje de éxito */
-.success-message {
-  background-color: #d4edda;
-  color: #155724;
-  padding: 20px;
-  border-radius: 8px;
-  text-align: center;
-  margin-top: 20px;
-}
-
-.success-message h2 {
-  margin-top: 0;
-}
-
-.success-message button {
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 10px 20px;
-  font-size: 16px;
-  margin-top: 15px;
-  cursor: pointer;
-}
-
-.success-message button:hover {
-  background-color: #218838;
-}
-
-/* Estilos para mensajes de carga y error */
-.loading, .error, .no-questions {
-  padding: 20px;
-  border-radius: 8px;
-  text-align: center;
-  margin: 20px 0;
-}
-
-.loading {
-  background-color: #e9f5fe;
+.form-sidebar li:hover {
+  background-color: #f5f7fa;
   color: #3498db;
 }
 
-.error {
-  background-color: #f8d7da;
-  color: #721c24;
+.form-sidebar li.active {
+  background-color: #e7f3ff;
+  border-left-color: #3498db;
+  color: #2980b9;
+  font-weight: 500;
 }
 
-.no-questions {
-  background-color: #f8f9fa;
-  color: #6c757d;
-  padding: 30px;
-  border: 1px dashed #dee2e6;
+.form-sidebar li.active::after {
+  content: "";
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #3498db;
 }
 
-/* Contenedor de secciones */
+/* Contenido principal con más espacio arriba */
+.form-main-content {
+  flex: 1;
+  min-height: 100vh; /* Cambio para extender la altura */
+  overflow-y: auto;
+  padding: 40px 30px; /* Aumentar padding superior de 25px a 40px */
+  background: linear-gradient(135deg, #f5f7fa, #f0f2f5);
+}
+
+.form-with-sections {
+  width: 100%; /* Ocupar todo el ancho disponible */
+  max-width: 1400px; /* Aumentar de 1200px a 1400px para más ancho */
+  margin: 0 auto;
+  padding-bottom: 80px; /* Espacio para el botón flotante */
+  min-height: calc(100vh - 120px); /* Altura mínima para ocupar casi toda la pantalla */
+}
+
+/* Mejorar el espaciado de las secciones */
 .form-sections-container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 30px;
+  min-height: calc(100vh - 200px); /* Altura mínima para extenderse */
 }
 
-/* Estilos para cada sección */
 .form-section {
   border-radius: 10px;
   overflow: hidden;
   background-color: #fff;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-  border-left: 5px solid #ddd; /* Se sobreescribe con el color de la sección */
-  transition: box-shadow 0.3s ease, transform 0.3s ease;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+  border: none; /* Eliminar borde */
+  transition: box-shadow 0.3s ease;
+  margin-bottom: 25px; /* Aumentar margen inferior */
 }
 
-.form-section:hover {
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+.form-section:last-child {
+  margin-bottom: 0;
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
+  padding: 20px 25px;
   cursor: pointer;
   user-select: none;
   transition: background 0.3s ease;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .section-header:hover {
@@ -310,7 +141,7 @@ select.form-control {
 .section-header-left {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 20px;
 }
 
 .section-icon {
@@ -325,81 +156,57 @@ select.form-control {
 
 .section-title h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 1.1rem;
   font-weight: 600;
+  color: #2c3e50;
 }
 
 .section-title p {
-  margin: 5px 0 0;
-  font-size: 14px;
-  color: #666;
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: #7f8c8d;
 }
 
-.section-header-right {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.progress-indicator {
-  width: 120px;
-}
-
-.progress-indicator .progress {
-  height: 6px;
-}
-
-.expand-indicator {
-  font-size: 18px;
-  transition: transform 0.3s ease;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.5);
-}
-
-.expand-indicator.expanded {
-  transform: rotate(180deg);
-}
-
-/* Contenido de la sección */
 .section-content {
-  padding: 0;
-  overflow: visible !important; /* Cambiado de hidden a visible */
+  overflow: visible;
+  background-color: #f9fafb;
 }
 
+/* Ajustar el tamaño del grid para tarjetas más grandes */
 .questions-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 15px;
-  padding: 20px;
-  background-color: #f8f9fa;
-  max-height: none !important; /* Eliminar restricción de altura */
+  grid-template-columns: repeat(2, 1fr); /* Forzar 2 columnas */
+  gap: 24px; /* Aumentar gap */
+  padding: 30px; /* Aumentar padding */
 }
 
-/* Tarjeta de pregunta */
+/* Tarjetas de preguntas más altas */
 .question-card {
   background-color: white;
   border-radius: 8px;
-  padding: 15px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  padding: 24px; /* Aumentar padding de 20px a 24px */
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e8e8e8;
   transition: all 0.2s ease;
-  border-left: 3px solid transparent;
+  height: calc(100% - 10px); /* Hacer que todas las tarjetas tengan la misma altura */
+  display: flex;
+  flex-direction: column;
 }
 
 .question-card:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  border-color: #ddd;
+  transform: translateY(-2px);
 }
 
 .question-card.required-answered {
-  border-left-color: #2ecc71;
+  background-color: #f0fff4;
+  border-color: #b7e4c7;
 }
 
 .question-card.required-unanswered {
-  border-left-color: #e74c3c;
+  background-color: #fff5f5;
+  border-color: #f5c6cb;
 }
 
 .question-content {
@@ -408,211 +215,228 @@ select.form-control {
   gap: 10px;
 }
 
+/* Mejora de campos de formulario */
 .form-group label {
   font-weight: 500;
-  font-size: 15px;
+  font-size: 0.9rem;
   margin-bottom: 8px;
   display: block;
+  color: #34495e;
 }
 
 .required-mark {
   color: #e74c3c;
   margin-left: 4px;
+  font-weight: bold;
 }
 
-.form-text {
-  font-size: 13px;
-  margin-bottom: 8px;
+.form-text.text-muted {
+  font-size: 0.8rem;
+  margin-bottom: 10px;
   display: block;
+  color: #95a5a6;
+  font-style: italic;
 }
 
-/* Estilos para los inputs */
+/* Mejorar inputs */
 input[type="text"],
 select,
 textarea {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 15px;
-  transition: border 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background-color: #fff;
 }
 
 input[type="text"]:focus,
 select:focus,
 textarea:focus {
-  border-color: #3498db;
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
   outline: none;
 }
 
-/* Opciones de radio (Si/No) */
-.si-no-options {
-  display: flex;
-  gap: 15px;
-  margin: 5px 0;
+textarea {
+  min-height: 80px;
 }
 
-.form-check-inline {
+/* Opciones Si/No mejoradas */
+.si-no-options {
   display: flex;
-  align-items: center;
-  margin-right: 0;
+  gap: 20px;
+  margin-top: 8px;
+}
+
+.form-check-label {
+  font-size: 0.9rem;
+  cursor: pointer;
 }
 
 .form-check-input {
-  margin-right: 5px;
+  cursor: pointer;
 }
 
-/* Botones de acción del formulario */
+/* Botón de acción mejorado */
 .form-actions {
   display: flex;
-  justify-content: center;
-  gap: 20px;
-  padding: 20px;
-}
-
-.btn-submit,
-.btn-reset,
-.btn-primary,
-.btn-retry {
-  padding: 12px 24px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
+  justify-content: flex-end;
+  margin-top: 25px;
+  padding: 0 5px;
 }
 
 .btn-submit {
-  background-color: #2980b9;
-  color: white;
-}
-
-.btn-submit:hover {
   background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 28px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 8px rgba(52, 152, 219, 0.25);
+  letter-spacing: 0.02em;
 }
 
-.btn-reset {
-  background-color: #f8f9fa;
-  color: #555;
-  border: 1px solid #ddd;
-}
-
-.btn-reset:hover {
-  background-color: #f1f1f1;
-}
-
-.btn-primary {
+.btn-submit:hover:not(:disabled) {
   background-color: #2980b9;
-  color: white;
+  box-shadow: 0 5px 12px rgba(52, 152, 219, 0.35);
+  transform: translateY(-2px);
 }
 
-.btn-retry {
-  background-color: #e74c3c;
-  color: white;
+.btn-submit:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
 }
 
-/* Estados especiales del formulario */
-.form-loading-container,
-.form-error-container,
-.form-success-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 50px 20px;
-  text-align: center;
-  min-height: 300px;
-  background-color: white;
-  border-radius: 10px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-.loading-spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
+/* MEJORA DEL BOTÓN DE CHAT */
+.chat-button {
+  position: fixed;
+  bottom: 20px; /* Ajustado de 30px a 20px */
+  right: 30px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
-  border-top: 4px solid #3498db;
-  width: 50px;
-  height: 50px;
-  animation: spin 1s linear infinite;
-  margin-bottom: 20px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.error-icon {
-  font-size: 48px;
-  margin-bottom: 20px;
-}
-
-.success-icon {
-  font-size: 64px;
-  color: #2ecc71;
-  background-color: rgba(46, 204, 113, 0.1);
-  width: 100px;
-  height: 100px;
+  background-color: #3498db;
+  color: white;
+  font-size: 24px;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  margin-bottom: 20px;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 1000;
 }
 
-/* Estilos para preguntas obligatorias */
-.form-question-card.required-unanswered {
-  border: 2px solid #ff5555 !important; /* Borde rojo más fuerte */
-  background-color: #ffeeee !important; /* Fondo rojo claro */
+.chat-button:hover {
+  transform: scale(1.1);
+  background-color: #2980b9;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
 }
 
-.form-question-card.required-answered {
-  border: 2px solid #55cc55 !important; /* Borde verde más fuerte */
-  background-color: #eeffee !important; /* Fondo verde claro */
-  transition: background-color 0.5s ease, border-color 0.5s ease;
+.chat-button:active {
+  transform: scale(0.95);
 }
 
-/* Indicador visual de campo obligatorio */
-.required-mark {
-  color: #ff0000;
-  font-weight: bold;
-  margin-left: 5px;
+.chat-button i {
+  transition: all 0.3s ease;
 }
 
-/* Asegurar que el texto sea visible sobre los fondos coloreados */
-.form-question-card.required-unanswered label,
-.form-question-card.required-answered label {
-  color: #333; /* Color de texto oscuro para mejor contraste */
+.chat-button:hover i {
+  transform: scale(1.2);
 }
 
-.autocompletado {
-  border: 2px solid #4caf50 !important; /* Verde para autocompletados */
-  background: #e8f5e9;
-}
-
-/* Asegurar que el contenedor de secciones tome todo el espacio disponible */
-.form-with-sections {
+/* Añadir pulso para llamar la atención */
+.chat-button::after {
+  content: '';
+  position: absolute;
+  width: 100%;
   height: 100%;
-  display: flex;
-  flex-direction: column;
+  border-radius: 50%;
+  background-color: rgba(52, 152, 219, 0.4);
+  z-index: -1;
+  animation: pulse 2s infinite;
 }
 
-/* Corregir el comportamiento de scroll cuando se usa dentro de component-inner-scroll */
-.component-inner-scroll {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto !important; /* Cambiado de hidden a auto */
-  border-radius: 0 0 8px 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  background-color: white;
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
 }
 
-/* Ajuste para mobile */
+/* CHAT CONTAINER - Más cercano al botón */
+.chatbot-container, .chatbot-wrapper {
+  position: fixed;
+  bottom: 85px; /* Reducir de 100px a 85px para acercarlo al botón */
+  right: 30px;
+  width: 400px;
+  max-width: 90vw;
+  height: 520px;
+  max-height: 65vh; /* Reducir un poco la altura máxima */
+  z-index: 1000;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .form-with-sections {
+    max-width: 100%; /* En pantallas más pequeñas, usar todo el ancho */
+  }
+}
+
+@media (max-width: 992px) {
+  .form-sidebar {
+    width: 250px;
+  }
+  
+  .questions-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    padding: 20px;
+  }
+}
+
 @media (max-width: 768px) {
+  .form-sidebar {
+    width: 220px;
+  }
+  
   .questions-grid {
     grid-template-columns: 1fr; /* Una columna en móviles */
+  }
+  
+  .chatbot-container, .chatbot-wrapper {
+    bottom: 70px; /* Acercar aún más en móviles */
+    height: 450px;
+  }
+  
+  .chat-button {
+    bottom: 20px;
+    right: 20px;
+  }
+}
+
+@media (max-width: 576px) {
+  .formulario-manual-container {
+    flex-direction: column;
+  }
+  
+  .form-sidebar {
+    width: 100%;
+    height: auto;
+    max-height: 300px;
   }
 }

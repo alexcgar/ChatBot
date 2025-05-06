@@ -1,79 +1,124 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { FaRobot, FaPaperPlane, FaTimes } from 'react-icons/fa';
 import './ChatBot.css';
-import ChatInput from '../ChatInput/ChatInput';
 import { LOCAL_API_URL } from '../../services/api';
 
+// Header del chat
+const ChatHeader = ({ onClose }) => (
+  <div className="chat-header">
+    <div className="chat-header-title">
+      <FaRobot style={{ marginRight: '8px' }} /> Asistente Virtual
+    </div>
+    <button 
+      onClick={onClose} 
+      className="chat-close-button"
+      aria-label="Cerrar chat"
+    >
+      <FaTimes />
+    </button>
+  </div>
+);
+
+// Mejorar el diseño del input
+const ChatInput = ({ value = '', onChange, onSubmit, isTyping, placeholder }) => {
+  // Función para manejar pulsación de tecla
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && !isTyping && value.trim()) {
+      e.preventDefault(); // Evitar salto de línea
+      onSubmit();
+    }
+  };
+
+  return (
+    <div className="chat-input-container">
+      <input
+        type="text"
+        className="chat-input"
+        value={value}
+        onChange={onChange}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        disabled={isTyping}
+      />
+      <button 
+        className="send-button" 
+        onClick={onSubmit}
+        disabled={(!value || !value.trim()) || isTyping}
+      >
+        <FaPaperPlane size={16} />
+      </button>
+    </div>
+  );
+};
+
+// Añadir este componente después de ChatInput:
+
+const OptionsDisplay = ({ options, onSelect }) => {
+  if (!Array.isArray(options) || options.length === 0) return null;
+  
+  return (
+    <div className="options-container">
+      {options.map((option, idx) => (
+        <button 
+          key={option.CodAnswer || idx}
+          className="option-button"
+          onClick={() => onSelect(option.Description)}
+        >
+          {option.Description}
+        </button>
+      ))}
+    </div>
+  );
+};
+
 const useRenderChatInput = (currentIndex, questions, isTyping, handleSend) => {
+  const [inputValue, setInputValue] = useState('');
+  
+  // Función para manejar el envío respetando la interfaz existente
+  const handleSubmit = React.useCallback(() => {
+    if (inputValue.trim()) {
+      handleSend(inputValue);
+      setInputValue('');
+    }
+  }, [inputValue, handleSend]);
+  
+  // Manejar cambio de entrada
+  const handleChange = (e) => {
+    setInputValue(e.target.value);
+  };
+  
   return React.useMemo(() => {
     if (currentIndex >= questions.length) return null;
     
+    // Placeholder según el tipo de pregunta
+    let placeholder = 'Escribe tu consulta aquí...';
+    
     if (currentIndex === -1) {
-      return (
-        <ChatInput
-          question={{
-            type: 'text',
-            placeholder: 'Describe tu proyecto agrícola aquí...',
-            id: 'initial-description'
-          }}
-          onSend={handleSend}
-          isLoading={false}
-        />
-      );
-    } else {
+      placeholder = 'Describe tu proyecto agrícola aquí...';
+    } else if (currentIndex < questions.length) {
       const currentQuestion = questions[currentIndex];
-      
       if (currentQuestion.Type === 3) {
-        const questionAnswers = currentQuestion.Answers || [];
-        return (
-          <ChatInput
-            question={{
-              type: 'select',
-              placeholder: `Selecciona una opción o escribe para ${currentQuestion.Description}...`,
-              id: currentQuestion.IDQuestion,
-              options: questionAnswers.map(answer => ({
-                label: answer.Description,
-                value: answer.CodAnswer.toString()
-              }))
-            }}
-            onSend={handleSend}
-            isLoading={false}
-          />
-        );
+        placeholder = `Selecciona una opción para ${currentQuestion.Description}...`;
       } else if (currentQuestion.Type === 4) {
-        const questionAnswers = currentQuestion.Answers || [];
-        return (
-          <ChatInput
-            question={{
-              type: 'select',
-              placeholder: `Selecciona opciones para ${currentQuestion.Description} (separa múltiples opciones con coma)`,
-              id: currentQuestion.IDQuestion,
-              options: questionAnswers.map(answer => ({
-                label: answer.Description,
-                value: answer.CodAnswer.toString()
-              }))
-            }}
-            onSend={handleSend}
-            isLoading={false}
-          />
-        );
+        placeholder = `Selecciona opciones para ${currentQuestion.Description} (separa con coma)...`;
       } else {
-        return (
-          <ChatInput
-            question={{
-              type: 'text',
-              placeholder: `Escribe tu respuesta para ${currentQuestion.Description}...`,
-              id: currentQuestion.IDQuestion
-            }}
-            onSend={handleSend}
-            isLoading={false}
-          />
-        );
+        placeholder = `Escribe tu respuesta para ${currentQuestion.Description}...`;
       }
     }
-  }, [currentIndex, questions, handleSend]);
+    
+    return (
+      <ChatInput
+        value={inputValue}
+        onChange={handleChange}
+        onSubmit={handleSubmit}
+        isTyping={isTyping}
+        placeholder={placeholder} // Añadir esta línea para utilizar el placeholder dinámico
+      />
+    );
+  }, [currentIndex, questions, inputValue, handleSubmit, isTyping]);
 };
 
-const Chatbot = ({ questions = [], onUpdateFormData, formData = {} }) => {
+const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isVisible }) => {
   // Asegurarse de que formData siempre sea un objeto
   const safeFormData = React.useMemo(() => formData || {}, [formData]);
   const [chatHistory, setChatHistory] = useState([]);
@@ -179,7 +224,6 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {} }) => {
       const extractedData = data.data;
       console.log("Datos extraídos del backend:", extractedData);
       
-      // AQUÍ ES DONDE FALTA EL CÓDIGO: Mapear los datos extraídos a los IDs de las preguntas
       const mappedFormData = {};
       const autoCompletedFields = [];
       
@@ -191,7 +235,39 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {} }) => {
         
         if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
           // Tenemos un valor para esta pregunta
-          mappedFormData[question.IDQuestion] = fieldValue;
+          
+          // Para campos tipo select (Type 3), buscar el CodAnswer adecuado
+          if (question.Type === 3 && Array.isArray(question.Answers) && question.Answers.length > 0) {
+            // Convertir el valor extraído a minúscula para comparación insensible a mayúsculas
+            const extractedValueLower = String(fieldValue).toLowerCase();
+            
+            // Buscar coincidencia exacta primero
+            let matchedAnswer = question.Answers.find(
+              ans => ans.Description.toLowerCase() === extractedValueLower
+            );
+            
+            // Si no hay coincidencia exacta, buscar coincidencia parcial
+            if (!matchedAnswer) {
+              matchedAnswer = question.Answers.find(
+                ans => ans.Description.toLowerCase().includes(extractedValueLower) ||
+                      extractedValueLower.includes(ans.Description.toLowerCase())
+              );
+            }
+            
+            // Si encontramos una coincidencia, usar el CodAnswer
+            if (matchedAnswer) {
+              mappedFormData[question.IDQuestion] = matchedAnswer.CodAnswer.toString();
+              console.log(`Coincidencia encontrada para ${question.Description}: "${fieldValue}" -> ${matchedAnswer.Description} (${matchedAnswer.CodAnswer})`);
+            } else {
+              // Si no hay coincidencia, usar el valor original como fallback
+              mappedFormData[question.IDQuestion] = fieldValue;
+              console.log(`No se encontró coincidencia para ${question.Description}: "${fieldValue}"`);
+            }
+          } else {
+            // Para otros tipos de campos, usar el valor directamente
+            mappedFormData[question.IDQuestion] = fieldValue;
+          }
+          
           autoCompletedFields.push(question.IDQuestion);
         }
       });
@@ -327,6 +403,33 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {} }) => {
         const cachedData = getCachedExtraction(answer);
         if (cachedData) {
           const mappedFormData = cachedData.data || {};
+          
+          // Procesar los datos en caché para campos select
+          questions.forEach(question => {
+            if (question.Type === 3 && mappedFormData[question.IDQuestion] && 
+                Array.isArray(question.Answers) && question.Answers.length > 0) {
+              
+              const cachedValue = String(mappedFormData[question.IDQuestion]).toLowerCase();
+              
+              // Verificar si el valor ya es un CodAnswer válido
+              const isValidCode = question.Answers.some(
+                ans => String(ans.CodAnswer).toLowerCase() === cachedValue
+              );
+              
+              // Si no es un código válido, buscar la coincidencia por descripción
+              if (!isValidCode) {
+                const matchedAnswer = question.Answers.find(
+                  ans => ans.Description.toLowerCase().includes(cachedValue) ||
+                        cachedValue.includes(ans.Description.toLowerCase())
+                );
+                
+                if (matchedAnswer) {
+                  mappedFormData[question.IDQuestion] = matchedAnswer.CodAnswer.toString();
+                }
+              }
+            }
+          });
+          
           const autoCompletedFields = cachedData.autoCompletedFields || [];
           onUpdateFormData(mappedFormData, autoCompletedFields);
           
@@ -497,7 +600,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {} }) => {
         const currentQuestion = questions[currentIndex];
         const currentFormData = safeFormData;
 
-        // Añadir esta condición para evitar repetición infinita:
+        // Evitar repetición si ya está contestada
         if (!isFieldEmpty(currentFormData, currentQuestion.IDQuestion)) {
           const nextUnansweredIndex = questions.findIndex(
             (q, idx) => idx > currentIndex && isFieldEmpty(currentFormData, q.IDQuestion)
@@ -515,7 +618,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {} }) => {
           return;
         }
 
-        // Añadir esta condición para evitar generar la misma pregunta repetidamente:
+        // Evitar repetir preguntas
         const alreadyAsked = chatHistory.some(msg => msg.questionId === currentQuestion.IDQuestion);
         if (alreadyAsked) {
           return;
@@ -529,11 +632,32 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {} }) => {
             body: JSON.stringify({ input: currentQuestion.Description })
           });
           const data = await response.json();
-          const questionText = data.question || `¿Cuál es el ${currentQuestion.Description}?`;
+          let questionText = data.question || `¿Cuál es el ${currentQuestion.Description}?`;
+          
+          // Añadir opciones para preguntas de tipo selección
+          if ((currentQuestion.Type === 3 || currentQuestion.Type === 4) && 
+              Array.isArray(currentQuestion.Answers) && 
+              currentQuestion.Answers.length > 0) {
+            
+            // Añadir las opciones disponibles
+            questionText += '\n\nOpciones disponibles:';
+            currentQuestion.Answers.forEach((answer, idx) => {
+              questionText += `\n${idx + 1}. ${answer.Description}`;
+            });
+            
+            if (currentQuestion.Type === 3) {
+              questionText += '\n\nSelecciona una opción por su número o nombre.';
+            } else {
+              questionText += '\n\nPuedes seleccionar varias opciones separándolas por comas.';
+            }
+          }
+          
           setChatHistory(prev => [...prev, {
             sender: 'bot',
             text: questionText,
-            questionId: currentQuestion.IDQuestion
+            questionId: currentQuestion.IDQuestion,
+            options: (currentQuestion.Type === 3 || currentQuestion.Type === 4) ? 
+                     currentQuestion.Answers : null
           }]);
         } catch (error) {
           console.error('Error al generar la pregunta:', error);
@@ -556,14 +680,19 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {} }) => {
     }
   }, [chatHistory, safeFormData]); // Añadir safeFormData como dependencia
 
+  useEffect(() => {
+    if (isVisible && chatMessagesAreaRef.current) {
+      chatMessagesAreaRef.current.scrollTop = chatMessagesAreaRef.current.scrollHeight;
+    }
+  }, [isVisible]);
+
   const chatInputComponent = useRenderChatInput(currentIndex, questions, isTyping, handleSend);
 
   return (
     <div className="chatbot-wrapper">
       <div className="chatbot-main-container">
         <div className="chat-card">
-          <div className="card-header">
-          </div>
+          <ChatHeader onClose={onClose} />
           <div className="chat-card-body">
             <div className="chat-messages-area" ref={chatMessagesAreaRef}>
               {chatHistory.map((message, index) => {
@@ -582,15 +711,39 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {} }) => {
                 if (isRequired) {
                   requiredClass = isAnswered ? 'required-answered' : 'required-unanswered';
                 }
-              
+
                 return (
-                  <div 
-                    key={index} 
-                    className={`message ${message.sender} ${message.isAutoCompleted ? 'auto-completed' : ''} ${requiredClass}`}
-                  >
-                    {message.text}
-                    {isRequired && !isAnswered && <span className="required-indicator">*</span>}
-                  </div>
+                  <React.Fragment key={index}>
+                    <div 
+                      className={`message ${message.sender} ${message.isAutoCompleted ? 'auto-completed' : ''} ${requiredClass}`}
+                    >
+                      {message.text}
+                      {isRequired && !isAnswered && <span className="required-indicator">*</span>}
+                    </div>
+                    
+                    {/* Mostrar botones de opciones si el mensaje tiene opciones disponibles */}
+                    {message.options && Array.isArray(message.options) && message.options.length > 0 && (
+                      <OptionsDisplay 
+                        options={message.options} 
+                        onSelect={(optionText) => {
+                          // Simular que el usuario escribe la opción y envía
+                          const input = document.querySelector('.chat-input');
+                          if (input) {
+                            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+                              window.HTMLInputElement.prototype, 'value'
+                            ).set;
+                            nativeInputValueSetter.call(input, optionText);
+                            input.dispatchEvent(new Event('input', { bubbles: true }));
+                            
+                            // Retrasar un poco el envío para que se vea el cambio
+                            setTimeout(() => handleSend(optionText), 100);
+                          } else {
+                            handleSend(optionText);
+                          }
+                        }}
+                      />
+                    )}
+                  </React.Fragment>
                 );
               })}
               {isTyping && (
