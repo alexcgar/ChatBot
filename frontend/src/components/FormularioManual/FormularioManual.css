@@ -5,6 +5,64 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* Estilos de base y reset */
+.formulario-manual-container {
+  width: 100%;
+  max-width: 1800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+  max-height: 100%;
+  overflow-y: auto !important; /* Forzar scroll vertical cuando sea necesario */
+}
+
+/* Barra de progreso global */
+.form-progress-bar {
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  padding: 15px 20px;
+  margin-bottom: 25px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.progress-info h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.progress-info p {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.progress {
+  height: 8px;
+  border-radius: 4px;
+  background-color: #e9ecef;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+  text-align: right;
+  padding-right: 5px;
+  font-size: 10px;
+  line-height: 8px;
+  color: transparent;
+}
+
 /* Contenedor principal con línea temporal */
 .form-container {
   position: relative;
@@ -47,7 +105,6 @@
   border-left: 4px solid #3498db;
   margin-left: 20px;
 }
-
 
 /* Ajusta los bordes de las subsecciones si es necesario para que no se solapen */
 .deposito-chapa-question,
@@ -214,10 +271,186 @@ select.form-control {
   border: 1px dashed #dee2e6;
 }
 
-/* Estilos para opciones de sí/no */
+/* Contenedor de secciones */
+.form-sections-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Estilos para cada sección */
+.form-section {
+  border-radius: 10px;
+  overflow: hidden;
+  background-color: #fff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  border-left: 5px solid #ddd; /* Se sobreescribe con el color de la sección */
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.form-section:hover {
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.3s ease;
+}
+
+.section-header:hover {
+  filter: brightness(0.98);
+}
+
+.section-header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.section-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.section-title h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.section-title p {
+  margin: 5px 0 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.section-header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.progress-indicator {
+  width: 120px;
+}
+
+.progress-indicator .progress {
+  height: 6px;
+}
+
+.expand-indicator {
+  font-size: 18px;
+  transition: transform 0.3s ease;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.expand-indicator.expanded {
+  transform: rotate(180deg);
+}
+
+/* Contenido de la sección */
+.section-content {
+  padding: 0;
+  overflow: visible !important; /* Cambiado de hidden a visible */
+}
+
+.questions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 15px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  max-height: none !important; /* Eliminar restricción de altura */
+}
+
+/* Tarjeta de pregunta */
+.question-card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.question-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.question-card.required-answered {
+  border-left-color: #2ecc71;
+}
+
+.question-card.required-unanswered {
+  border-left-color: #e74c3c;
+}
+
+.question-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-group label {
+  font-weight: 500;
+  font-size: 15px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.required-mark {
+  color: #e74c3c;
+  margin-left: 4px;
+}
+
+.form-text {
+  font-size: 13px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+/* Estilos para los inputs */
+input[type="text"],
+select,
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 15px;
+  transition: border 0.3s ease, box-shadow 0.3s ease;
+}
+
+input[type="text"]:focus,
+select:focus,
+textarea:focus {
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
+  outline: none;
+}
+
+/* Opciones de radio (Si/No) */
 .si-no-options {
   display: flex;
-  gap: 20px;
+  gap: 15px;
+  margin: 5px 0;
 }
 
 .form-check-inline {
@@ -227,12 +460,106 @@ select.form-control {
 }
 
 .form-check-input {
-  margin-right: 8px;
+  margin-right: 5px;
 }
 
-.required-mark {
-  color: red;
-  margin-left: 4px;
+/* Botones de acción del formulario */
+.form-actions {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding: 20px;
+}
+
+.btn-submit,
+.btn-reset,
+.btn-primary,
+.btn-retry {
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.btn-submit {
+  background-color: #2980b9;
+  color: white;
+}
+
+.btn-submit:hover {
+  background-color: #3498db;
+}
+
+.btn-reset {
+  background-color: #f8f9fa;
+  color: #555;
+  border: 1px solid #ddd;
+}
+
+.btn-reset:hover {
+  background-color: #f1f1f1;
+}
+
+.btn-primary {
+  background-color: #2980b9;
+  color: white;
+}
+
+.btn-retry {
+  background-color: #e74c3c;
+  color: white;
+}
+
+/* Estados especiales del formulario */
+.form-loading-container,
+.form-error-container,
+.form-success-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 20px;
+  text-align: center;
+  min-height: 300px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.loading-spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top: 4px solid #3498db;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.success-icon {
+  font-size: 64px;
+  color: #2ecc71;
+  background-color: rgba(46, 204, 113, 0.1);
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-bottom: 20px;
 }
 
 /* Estilos para preguntas obligatorias */
@@ -263,4 +590,29 @@ select.form-control {
 .autocompletado {
   border: 2px solid #4caf50 !important; /* Verde para autocompletados */
   background: #e8f5e9;
+}
+
+/* Asegurar que el contenedor de secciones tome todo el espacio disponible */
+.form-with-sections {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Corregir el comportamiento de scroll cuando se usa dentro de component-inner-scroll */
+.component-inner-scroll {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto !important; /* Cambiado de hidden a auto */
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background-color: white;
+}
+
+/* Ajuste para mobile */
+@media (max-width: 768px) {
+  .questions-grid {
+    grid-template-columns: 1fr; /* Una columna en móviles */
+  }
 }
