@@ -61,9 +61,10 @@ function App() {
         {/* Contenedor del chat siempre montado, visibilidad controlada por CSS */}
         <div className={`chat-bubble-container ${isChatOpen ? '' : 'hidden'}`}>
           <div className="chat-bubble-header">
-            <h3>Asistente Virtual</h3>
+            <h4>Asistente Virtual</h4>
             <button className="chat-close-button" onClick={() => setIsChatOpen(false)}>
               <FaTimes />
+              
             </button>
           </div>
           <div className="chat-bubble-content">

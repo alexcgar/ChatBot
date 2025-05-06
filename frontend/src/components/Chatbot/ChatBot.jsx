@@ -70,7 +70,7 @@ const useRenderChatInput = (currentIndex, questions, isTyping, handleSend) => {
         );
       }
     }
-  }, [currentIndex, isTyping, questions, handleSend]);
+  }, [currentIndex, questions, handleSend]);
 };
 
 const Chatbot = ({ questions = [], onUpdateFormData, formData = {} }) => {
@@ -285,7 +285,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {} }) => {
     } finally {
       setIsExtracting(false);
     }
-  }, [extractDataInBatches, onUpdateFormData, saveCachedExtraction, setChatHistory, setExtractionProgress, setIsExtracting]);
+  }, [extractDataInBatches, onUpdateFormData, questions, saveCachedExtraction]);
 
   const showCompletedFieldsSummary = React.useCallback((completedData) => {
     // Verificar que completedData no sea null ni undefined
@@ -326,8 +326,6 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {} }) => {
       try {
         const cachedData = getCachedExtraction(answer);
         if (cachedData) {
-          console.log("Usando datos extraídos de caché");
-          // Asegurarnos que los datos existan
           const mappedFormData = cachedData.data || {};
           const autoCompletedFields = cachedData.autoCompletedFields || [];
           onUpdateFormData(mappedFormData, autoCompletedFields);
@@ -351,7 +349,6 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {} }) => {
           }
           
           if (foundValidQuestion) {
-            console.log(`Siguiente pregunta sin respuesta: ${questions[nextUnansweredIndex].Description}`);
             setCurrentIndex(nextUnansweredIndex);
           } else {
             setChatHistory(prev => [...prev, {
@@ -501,10 +498,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {} }) => {
         const currentFormData = safeFormData;
 
         // Añadir esta condición para evitar repetición infinita:
-        if (currentFormData[currentQuestion.IDQuestion] !== undefined && 
-            currentFormData[currentQuestion.IDQuestion] !== null && 
-            currentFormData[currentQuestion.IDQuestion] !== '') {
-          console.log(`Pregunta "${currentQuestion.Description}" ya respondida, buscando siguiente...`);
+        if (!isFieldEmpty(currentFormData, currentQuestion.IDQuestion)) {
           const nextUnansweredIndex = questions.findIndex(
             (q, idx) => idx > currentIndex && isFieldEmpty(currentFormData, q.IDQuestion)
           );
@@ -524,7 +518,6 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {} }) => {
         // Añadir esta condición para evitar generar la misma pregunta repetidamente:
         const alreadyAsked = chatHistory.some(msg => msg.questionId === currentQuestion.IDQuestion);
         if (alreadyAsked) {
-          console.log(`La pregunta "${currentQuestion.Description}" ya fue generada.`);
           return;
         }
 

@@ -137,9 +137,9 @@ html, body {
 }
 
 .chat-bubble-button {
-  width: 60px;
-  height: 60px;
-  background-color: #007bff;
+  width: 90px;
+  height: 90px;
+  background-color: #b8a0a0;
   color: white;
   border-radius: 50%;
   display: flex;
@@ -237,8 +237,8 @@ html, body {
 }
 
 .chat-bubble-container {
-  width: 420px;
-  height: 700px;
+  width: 620px;
+  height: 800px;
   max-height: 80vh;
   background-color: white;
   border-radius: 10px;
