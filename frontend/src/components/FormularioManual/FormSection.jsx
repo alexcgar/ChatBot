@@ -8,6 +8,7 @@ const FormSection = ({
   formData, 
   renderField,
   isFieldCompleted,
+  autocompletados = [],
 }) => {
   const [isExpanded, setIsExpanded] = useState(section.expanded);
   
@@ -49,29 +50,43 @@ const FormSection = ({
             transition={{ duration: 0.3 }}
           >
             <div className="questions-grid p-2">
-              {questions.map(question => (
-                <div 
-                  key={question.IDQuestion} 
-                  className={`question-card ${
-                    question.Required ? 
-                      (isFieldCompleted(formData[question.IDQuestion]) ? 'required-answered' : 'required-unanswered') 
-                      : ''
-                  }`}
-                >
-                  <div className="question-content p-2">
-                    <div className="form-group">
-                      <label htmlFor={`question-${question.IDQuestion}`}>
-                        {question.Description}
-                        {question.Required && <span className="required-mark">*</span>}
-                      </label>
-                      {question.Comment && (
-                        <small className="form-text text-muted">{question.Comment}</small>
-                      )}
-                      {renderField(question)}
+              {questions.map(question => {
+                const isCompleted = isFieldCompleted(formData[question.IDQuestion]);
+                const isRequired = question.Required === true;
+                const isAutocompletado = autocompletados.includes(question.IDQuestion);
+                
+                // Determinar las clases a aplicar
+                let questionClasses = [];
+                
+                if (isRequired) {
+                  questionClasses.push(isCompleted ? 'required-answered' : 'required-unanswered');
+                }
+                
+                if (isAutocompletado) {
+                  questionClasses.push('autocompletado');
+                }
+                
+                return (
+                  <div 
+                    key={question.IDQuestion} 
+                    className={`question-card ${questionClasses.join(' ')}`}
+                  >
+                    <div className="question-content p-2">
+                      <div className="form-group">
+                        <label htmlFor={`question-${question.IDQuestion}`}>
+                          {question.Description}
+                          {isRequired && <span className="required-mark">*</span>}
+                          {isAutocompletado && <span className="autocompletado-mark"> (Auto)</span>}
+                        </label>
+                        {question.Comment && (
+                          <small className="form-text text-muted">{question.Comment}</small>
+                        )}
+                        {renderField(question)}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </motion.div>
         )}

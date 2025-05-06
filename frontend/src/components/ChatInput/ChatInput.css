@@ -1,87 +1,88 @@
-.chat-input-container {
-    width: 100%;
-    box-sizing: border-box;
-  }
-  
-  .chat-input-container form {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .input-container {
-    display: flex;
-    width: 100%;
-    align-items: flex-end; /* alinear elementos al final para botón alineado */
-  }
-  
-  .input-container input {
-    flex-grow: 1;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px 0 0 4px;
-    outline: none;
-  }
-  
-  .input-container button {
-    padding: 10px 15px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 0 4px 4px 0;
-    cursor: pointer;
-    height: auto;
-    align-self: stretch; /* hacer que el botón tenga la misma altura que el textarea */
-  }
-  
-  .input-container button:hover {
-    background-color: #0069d9;
-  }
-  
-  .input-container button:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-  }
-  
-  /* Estilo para los botones de opciones */
-  .select-options {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 10px;
-    width: 100%;
-  }
-  
-  .option-button {
-    background-color: #f1f1f1;
-    border: 1px solid #ddd;
-    border-radius: 16px;
-    padding: 5px 12px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  
-  .option-button:hover {
-    background-color: #e0e0e0;
-  }
-  
-  .option-button:active {
-    background-color: #d0d0d0;
-  }
+/* Estilos específicos del componente ChatInput */
+.chat-input-wrapper {
+  width: 100%;
+  box-sizing: border-box;
+}
 
-  /* Añadir estos estilos para el textarea expandible */
-  .expandable-textarea {
-    resize: none;
-    flex-grow: 1;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px 0 0 4px;
-    outline: none;
-    min-height: 40px;
-    max-height: 150px; /* limitar altura máxima */
-    overflow-y: auto; /* permitir scroll si excede max-height */
-    font-family: inherit; /* usar la misma fuente que el resto de la app */
-    font-size: inherit; /* usar el mismo tamaño de fuente */
-    line-height: 1.5; /* para mejor legibilidad */
-  }
+.chat-input-wrapper form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-input-wrapper .input-container {
+  display: flex;
+  width: 100%;
+  align-items: flex-end;
+}
+
+.chat-input-wrapper input {
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid var(--gray-300);
+  border-radius: 4px 0 0 4px;
+  outline: none;
+}
+
+.chat-input-wrapper button {
+  padding: 10px 15px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+  height: auto;
+  align-self: stretch;
+}
+
+.chat-input-wrapper button:hover {
+  background-color: var(--primary-hover);
+}
+
+.chat-input-wrapper button:disabled {
+  background-color: var(--gray-400);
+  cursor: not-allowed;
+}
+
+/* Estilo para los botones de opciones */
+.chat-input-wrapper .select-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+.chat-input-wrapper .option-button {
+  background-color: var(--gray-100);
+  border: 1px solid var(--gray-300);
+  border-radius: 16px;
+  padding: 5px 12px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.chat-input-wrapper .option-button:hover {
+  background-color: var(--gray-200);
+}
+
+.chat-input-wrapper .option-button:active {
+  background-color: var(--gray-300);
+}
+
+/* Textarea expandible */
+.chat-input-wrapper .expandable-textarea {
+  resize: none;
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid var(--gray-300);
+  border-radius: 4px 0 0 4px;
+  outline: none;
+  min-height: 40px;
+  max-height: 150px;
+  overflow-y: auto;
+  font-family: var(--font-family);
+  font-size: inherit;
+  line-height: 1.5;
+}

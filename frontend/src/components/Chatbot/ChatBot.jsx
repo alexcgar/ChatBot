@@ -318,9 +318,23 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
           if (result && result.data && Object.keys(result.data).length > 0) {
             const newData = result.data;
             
-            // Fusionar con datos existentes
-            const combinedData = {...accumulatedData, ...newData};
-            accumulatedData = combinedData;
+            // Proceso los datos para asegurar compatibilidad con el formulario
+            const formattedData = {};
+            Object.entries(newData).forEach(([key, value]) => {
+              // Para campos select, asegurar que sea string
+              const questionObj = questions.find(q => q.IDQuestion === key);
+              if (questionObj && questionObj.Type === 3) {
+                formattedData[key] = String(value);
+              } else {
+                formattedData[key] = value;
+              }
+            });
+
+            // Imprimir para debug
+            console.log("Enviando datos formateados al formulario:", formattedData);
+
+            // Actualizar formulario con datos formateados
+            onUpdateFormData(formattedData, result.autoCompletedFields);
             
             // Mostrar qué campos específicos se han extraído
             console.log("Campos extraídos en este lote:", 
@@ -328,9 +342,6 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
                          const questionObj = questions.find(q => q.IDQuestion === key);
                          return questionObj ? questionObj.Description : key;
                        }));
-            
-            // Actualizar formulario incremental con nuevos campos
-            onUpdateFormData(newData, result.autoCompletedFields);
             
             // Actualizar progreso
             completedBatches++;

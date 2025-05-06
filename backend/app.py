@@ -77,6 +77,7 @@ def extract_project_data():
     # Procesar campos en lotes más pequeños
     batch_size = 30  # Ajusta según sea necesario
     all_extracted_data = {}
+    auto_completed_fields = []  # Lista para seguir qué campos fueron autocompletados
     
     for i in range(0, len(question_descriptions), batch_size):
         batch = question_descriptions[i:i+batch_size]
@@ -142,8 +143,15 @@ def extract_project_data():
                 # Intentar parsear
                 extracted_json = json.loads(extracted_data)
                 
-                # Fusionar con resultados anteriores
-                all_extracted_data.update(extracted_json)
+                # Registrar los campos autocompletados (aquellos con valor no nulo)
+                for field, value in extracted_json.items():
+                    if value is not None and value != "":
+                        # Añadir el campo a all_extracted_data
+                        all_extracted_data[field] = value
+                        # Marcar este campo como autocompletado si no está ya en la lista
+                        if field not in auto_completed_fields:
+                            auto_completed_fields.append(field)
+                
             except json.JSONDecodeError as json_err:
                 print(f"Error parsing JSON: {json_err}")
                 print(f"Raw response: {extracted_data}")
@@ -164,8 +172,12 @@ def extract_project_data():
                         
                         extracted_json = json.loads(fallback_json)
                         
-                        # Fusionar con resultados anteriores
-                        all_extracted_data.update(extracted_json)
+                        # Registrar solo los campos autocompletados
+                        for field, value in extracted_json.items():
+                            if value is not None and value != "" and value != "null":
+                                all_extracted_data[field] = value
+                                if field not in auto_completed_fields:
+                                    auto_completed_fields.append(field)
                 except:
                     pass
                 
@@ -176,8 +188,11 @@ def extract_project_data():
             print(f"Error al procesar lote {i}-{i+batch_size}: {e}")
             # Continuar con el siguiente lote
 
-    # Devolver todos los datos extraídos
-    return jsonify({"data": all_extracted_data})
+    # Devolver todos los datos extraídos y qué campos fueron autocompletados
+    return jsonify({
+        "data": all_extracted_data,
+        "autoCompletedFields": auto_completed_fields
+    })
 
 
 if __name__ == "__main__":

@@ -7,8 +7,8 @@
   width: 100%;
   background-color: #f5f7fa; /* Cambio a un color más suave */
   position: relative;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #333;
+  font-family: var(--font-family);
+  color: var(--gray-800);
 }
 
 /* Barra lateral mejorada - alargar más */
@@ -16,12 +16,12 @@
   width: 280px;
   min-height: 100vh; /* Cambio de height a min-height para extender */
   background: linear-gradient(to bottom, #fff, #f8f9fb);
-  border-right: 1px solid #e0e0e0;
+  border-right: 1px solid var(--gray-300);
   padding: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
   z-index: 10;
   position: sticky; /* Mantenerla fija al hacer scroll */
   top: 0;
@@ -29,15 +29,15 @@
 
 .sidebar-header {
   padding: 18px 20px;
-  border-bottom: 1px solid #e6e9f0;
-  background-color: #ffffff;
+  border-bottom: 1px solid var(--gray-300);
+  background: linear-gradient(to right, var(--primary-color), var(--primary-dark));
+  color: white;
 }
 
 .sidebar-header h4 {
   margin: 0;
   font-size: 1.15rem;
   font-weight: 600;
-  color: #2c3e50; /* Corrección del color del texto */
 }
 
 .form-sidebar ul {
@@ -51,9 +51,9 @@
   padding: 14px 22px;
   cursor: pointer;
   border-left: 4px solid transparent;
-  transition: all 0.2s ease;
+  transition: var(--transition);
   font-size: 0.95rem;
-  color: #555;
+  color: var(--gray-700);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -61,14 +61,14 @@
 }
 
 .form-sidebar li:hover {
-  background-color: #f5f7fa;
-  color: #3498db;
+  background-color: var(--gray-100);
+  color: var(--primary-color);
 }
 
 .form-sidebar li.active {
-  background-color: #e7f3ff;
-  border-left-color: #3498db;
-  color: #2980b9;
+  background-color: var(--primary-light);
+  border-left-color: var(--primary-color);
+  color: var(--primary-dark);
   font-weight: 500;
 }
 
@@ -81,7 +81,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: #3498db;
+  background-color: var(--primary-color);
 }
 
 /* Contenido principal con más espacio arriba */
@@ -113,9 +113,9 @@
   border-radius: 10px;
   overflow: hidden;
   background-color: #fff;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
   border: none; /* Eliminar borde */
-  transition: box-shadow 0.3s ease;
+  transition: var(--transition);
   margin-bottom: 25px; /* Aumentar margen inferior */
 }
 
@@ -439,4 +439,12 @@ textarea {
     height: auto;
     max-height: 300px;
   }
+}
+
+.autocompletado-mark {
+  color: var(--success-color);
+  font-style: italic;
+  font-weight: normal;
+  font-size: 0.85em;
+  margin-left: 5px;
 }

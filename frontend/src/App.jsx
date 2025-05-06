@@ -27,6 +27,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [autoCompletedFields, setAutoCompletedFields] = useState([]);
 
   useEffect(() => {
     const loadQuestions = async () => {
@@ -72,19 +73,41 @@ function App() {
         formData={formData} 
         questions={questions}
         onFormChange={(newData) => setFormData({...formData, ...newData})}
+        autocompletados={autoCompletedFields}
       />
       
       {/* ChatBot siempre renderizado, pero con visibilidad controlada */}
       <div className={`chatbot-container ${isChatOpen ? 'visible' : 'hidden'}`}>
         <ChatBot 
           questions={questions}
-          onUpdateFormData={(newData) => {
-            console.log("Updating form data from ChatBot", newData);
-            setFormData({...formData, ...newData});
+          onUpdateFormData={(newData, autoCompleted) => {
+            console.log("Actualizando formData desde ChatBot:", newData);
+            // Usar una función de actualización para evitar problemas de estados antiguos
+            setFormData(prevData => {
+              const updatedData = { ...prevData, ...newData };
+              console.log("Nuevo estado formData:", updatedData);
+              return updatedData;
+            });
+            
+            // Actualizar campos autocompletados
+            if (autoCompleted && autoCompleted.length > 0) {
+              console.log(`Se autocompletaron ${autoCompleted.length} campos:`, autoCompleted);
+              // Actualizar la lista de campos autocompletados
+              setAutoCompletedFields(prevFields => {
+                // Combinar los campos existentes con los nuevos, evitando duplicados
+                const allFields = [...prevFields];
+                autoCompleted.forEach(field => {
+                  if (!allFields.includes(field)) {
+                    allFields.push(field);
+                  }
+                });
+                return allFields;
+              });
+            }
           }}
           formData={formData}
           onClose={toggleChat}
-          isVisible={isChatOpen} // Pasar el estado de visibilidad
+          isVisible={isChatOpen}
         />
       </div>
       

@@ -6,7 +6,7 @@ import { formSections } from './sectionConfig';
 // eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion';
 
-function FormularioManual({ formData = {}, onFormChange }) {
+function FormularioManual({ formData = {}, onFormChange, autocompletados = [] }) {
   const [localFormData, setLocalFormData] = useState(formData);
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
@@ -16,8 +16,24 @@ function FormularioManual({ formData = {}, onFormChange }) {
   const [selectedSectionId, setSelectedSectionId] = useState(null);
 
   useEffect(() => {
-    console.log("FormularioManual received new formData:", formData);
+    console.log("FormularioManual recibió nueva formData:", formData);
+    // Combinar con el estado local para preservar cambios locales
+    setLocalFormData(prevData => ({
+      ...prevData,
+      ...formData
+    }));
   }, [formData]);
+
+  useEffect(() => {
+    console.log("localFormData actualizado:", localFormData);
+    // Verificar si hay diferencias con formData
+    const differences = Object.entries(formData).filter(
+      ([key, value]) => localFormData[key] !== value
+    );
+    if (differences.length > 0) {
+      console.log("Diferencias detectadas con formData:", differences);
+    }
+  }, [localFormData, formData]);
 
   const isFieldCompleted = useCallback((value) => {
     if (value === undefined || value === null) return false;
@@ -29,10 +45,6 @@ function FormularioManual({ formData = {}, onFormChange }) {
   const shouldShowQuestion = useCallback(() => {
     return true;
   }, []);
-
-  useEffect(() => {
-    setLocalFormData(formData);
-  }, [formData]);
 
   useEffect(() => {
     const cargarPreguntas = async () => {
@@ -147,6 +159,27 @@ function FormularioManual({ formData = {}, onFormChange }) {
         selectedValue: value,
         availableOptions: answers[questionId]?.map(a => ({desc: a.Description, value: a.CodAnswer})) || []
       });
+    }
+
+    // Añadir más logs de debug para valores de selects y otros campos
+    if (question.Type === 3) {
+      console.log(`Renderizando select ${questionId}:`, {
+        valorActual: value,
+        tipoValor: typeof value,
+        opcionesDisponibles: answers[questionId]?.map(a => ({
+          desc: a.Description, 
+          valor: a.CodAnswer,
+          tipoValor: typeof a.CodAnswer
+        })) || []
+      });
+      
+      // Verificar si hay coincidencia
+      if (answers[questionId]) {
+        const coincide = answers[questionId].some(
+          a => String(a.CodAnswer) === String(value)
+        );
+        console.log(`¿El valor ${value} coincide con alguna opción? ${coincide}`);
+      }
     }
 
     if (question.Type === 3 && answers[questionId]) {
@@ -324,6 +357,12 @@ function FormularioManual({ formData = {}, onFormChange }) {
 
       <div className="form-main-content">
         <form onSubmit={handleSubmit} className="form-with-sections">
+          {autocompletados.length > 0 && (
+            <div className="autocompletados-resumen">
+              <span>✓ {autocompletados.length} campos han sido completados automáticamente</span>
+            </div>
+          )}
+
           <div className="form-sections-container">
             {formSections
               .filter(section => section.id === selectedSectionId)
@@ -339,6 +378,7 @@ function FormularioManual({ formData = {}, onFormChange }) {
                     formData={localFormData}
                     renderField={renderField}
                     isFieldCompleted={isFieldCompleted}
+                    autocompletados={autocompletados}
                   />
                 );
               })}
