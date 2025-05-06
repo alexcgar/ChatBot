@@ -225,16 +225,24 @@
 }
 
 .required-mark {
-  color: #e74c3c;
+  color: var(--danger-color);
   margin-left: 4px;
   font-weight: bold;
+}
+
+.autocompletado-mark {
+  color: var(--success-color);
+  font-style: italic;
+  font-weight: normal;
+  font-size: 0.85em;
+  margin-left: 5px;
 }
 
 .form-text.text-muted {
   font-size: 0.8rem;
   margin-bottom: 10px;
   display: block;
-  color: #95a5a6;
+  color: var(--gray-600);
   font-style: italic;
 }
 
@@ -439,12 +447,4 @@ textarea {
     height: auto;
     max-height: 300px;
   }
-}
-
-.autocompletado-mark {
-  color: var(--success-color);
-  font-style: italic;
-  font-weight: normal;
-  font-size: 0.85em;
-  margin-left: 5px;
 }

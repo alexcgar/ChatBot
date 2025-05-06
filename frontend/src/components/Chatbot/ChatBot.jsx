@@ -3,18 +3,19 @@ import { FaRobot, FaPaperPlane, FaTimes } from 'react-icons/fa';
 import './ChatBot.css';
 import { LOCAL_API_URL } from '../../services/api';
 
-// Header del chat
+// Header del chat - make sure header is always visible
 const ChatHeader = ({ onClose }) => (
   <div className="chat-header">
     <div className="chat-header-title">
-      <FaRobot style={{ marginRight: '8px' }} /> Asistente Virtual
+      <FaRobot style={{ fontSize: '18px', marginRight: '8px' }} /> 
+      <span>Asistente Virtual</span>
     </div>
     <button 
       onClick={onClose} 
       className="chat-close-button"
       aria-label="Cerrar chat"
     >
-      <FaTimes />
+      <FaTimes size={16} />
     </button>
   </div>
 );
@@ -121,12 +122,45 @@ const useRenderChatInput = (currentIndex, questions, isTyping, handleSend) => {
 const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isVisible }) => {
   // Asegurarse de que formData siempre sea un objeto
   const safeFormData = React.useMemo(() => formData || {}, [formData]);
+  // Guardar los campos auto-completados en el estado local
+  const [autoCompletedFields, setAutoCompletedFields] = useState([]);
   const [chatHistory, setChatHistory] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(-1); // -1 indica descripción inicial
   const [isTyping, setIsTyping] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionProgress, setExtractionProgress] = useState(0);
   const chatMessagesAreaRef = useRef(null);
+  const typingTimerRef = useRef(null);
+
+  // Función para mostrar el indicador de escritura con duración mínima
+  const setTypingWithMinDuration = (isTypingValue) => {
+    if (isTypingValue) {
+      // Si estamos activando el indicador, simplemente activarlo
+      setIsTyping(true);
+      // Limpiar cualquier temporizador anterior
+      if (typingTimerRef.current) {
+        clearTimeout(typingTimerRef.current);
+        typingTimerRef.current = null;
+      }
+    } else {
+      // Si estamos desactivando, asegurar duración mínima de 1.5 segundos
+      if (!typingTimerRef.current) {
+        typingTimerRef.current = setTimeout(() => {
+          setIsTyping(false);
+          typingTimerRef.current = null;
+        }, 1500); // 1.5 segundos de duración mínima
+      }
+    }
+  };
+
+  // Limpiar el temporizador al desmontar
+  useEffect(() => {
+    return () => {
+      if (typingTimerRef.current) {
+        clearTimeout(typingTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     setChatHistory([{
@@ -170,8 +204,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
   }, []); // Sin dependencias, ya que localStorage no cambia
 
   const extractDataInBatches = React.useCallback(async (description, allQuestions) => {
-    setIsTyping(true);
-    
+    // No cambiamos isTyping aquí para evitar parpadeos
     try {
       // Asegurarse que allQuestions sea un array
       const safeQuestions = Array.isArray(allQuestions) ? allQuestions : [];
@@ -283,15 +316,19 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
     } catch (error) {
       console.error("Error en la extracción por lotes:", error);
       return { data: {}, autoCompletedFields: [] };
-    } finally {
-      setIsTyping(false);
     }
-  }, [setIsTyping]);
+  }, []);
 
   const processBatchesInBackground = React.useCallback(async (description, batches, existingData) => {
     // Garantizar que existingData sea un objeto
     let accumulatedData = {...(existingData || {})};
     let completedBatches = 0;
+    
+    // Iniciar con un progreso mínimo visible
+    setExtractionProgress(5);
+    
+    // Definir el intervalo fuera del bloque try para que sea accesible en finally
+    let progressInterval;
     
     try {
       // Verificar que batches sea un array
@@ -300,7 +337,19 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
         return;
       }
       
-      for (const batch of batches) {
+      // Establecer un intervalo de actualización de progreso simulado
+      // para que la barra siempre muestre algún movimiento
+      progressInterval = setInterval(() => {
+        setExtractionProgress(prev => {
+          // Si el progreso ya es alto, no incrementar más
+          if (prev >= 95) return prev;
+          // Incrementar ligeramente el progreso para dar sensación de movimiento
+          return prev + 0.5;
+        });
+      }, 800);
+      
+      for (let i = 0; i < batches.length; i++) {
+        const batch = batches[i];
         // Verificar que el lote sea un array válido
         if (!Array.isArray(batch) || batch.length === 0) continue;
         
@@ -311,13 +360,22 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
           const result = await extractDataInBatches(description, batch);
           
           // Añadir este debug:
-          console.log(`Lote ${completedBatches+1}/${batches.length} procesado:`, 
+          console.log(`Lote ${i+1}/${batches.length} procesado:`, 
                      result && result.data ? Object.keys(result.data).length : 0, 
                      "campos extraídos");
           
           if (result && result.data && Object.keys(result.data).length > 0) {
             const newData = result.data;
             
+            // Acumular datos para el resultado final
+            Object.entries(newData).forEach(([key, value]) => {
+              accumulatedData[key] = value;
+            });
+            
+            // Actualizar autoCompletedFields con los nuevos campos
+            const newAutoCompletedFields = [...autoCompletedFields, ...(result.autoCompletedFields || [])];
+            setAutoCompletedFields(newAutoCompletedFields);
+
             // Proceso los datos para asegurar compatibilidad con el formulario
             const formattedData = {};
             Object.entries(newData).forEach(([key, value]) => {
@@ -342,17 +400,28 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
                          const questionObj = questions.find(q => q.IDQuestion === key);
                          return questionObj ? questionObj.Description : key;
                        }));
-            
-            // Actualizar progreso
-            completedBatches++;
-            setExtractionProgress(Math.floor((completedBatches / batches.length) * 100));
           } else {
             console.warn("Lote procesado sin extraer campos");
           }
+          
+          // Actualizar progreso basado en la cantidad de lotes procesados
+          completedBatches++;
+          // Calculamos el progreso real basado en los lotes completados (max 95%)
+          const realProgress = Math.min(95, Math.floor((completedBatches / batches.length) * 100));
+          setExtractionProgress(realProgress);
+          
         } catch (err) {
           console.error("Error procesando lote en segundo plano:", err);
+          // Incrementar contador de batches incluso si hubo error
+          completedBatches++;
         }
       }
+      
+      // Limpiar el intervalo de progreso simulado
+      clearInterval(progressInterval);
+      
+      // Marcar como 100% completado al finalizar todos los lotes
+      setExtractionProgress(100);
       
       // Objeto seguro para guardar en caché
       const safeResult = {
@@ -363,14 +432,35 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
       saveCachedExtraction(description, safeResult);
       
       // Notificación de finalización
-      setChatHistory(prev => [...prev, {
-        sender: 'bot',
-        text: `He terminado de analizar tu proyecto. He completado ${Object.keys(accumulatedData || {}).length} campos automáticamente.`,
-        questionId: 'background-extraction-complete',
-        isBackgroundNotification: true
-      }]);
+      const numFieldsCompleted = Object.keys(accumulatedData || {}).length;
+      setChatHistory(prev => {
+        // Add the new message
+        const newHistory = [...prev, {
+          sender: 'bot',
+          text: `He terminado de analizar tu proyecto. He completado automáticamente ${numFieldsCompleted} campos (marcados con 'Auto'). Puedes continuar completando el resto del formulario.`,
+          questionId: 'background-extraction-complete',
+          isBackgroundNotification: true
+        }];
+        
+        // Ensure we scroll to bottom after state update
+        setTimeout(() => {
+          if (chatMessagesAreaRef.current) {
+            chatMessagesAreaRef.current.scrollTop = chatMessagesAreaRef.current.scrollHeight;
+          }
+        }, 100);
+        
+        return newHistory;
+      });
     } finally {
+      // En caso de error, asegurarse de limpiar el intervalo
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
+      
+      // Siempre marcar como 100% al finalizar
+      setExtractionProgress(100);
       setIsExtracting(false);
+      // No cambiamos isTyping aquí para evitar problemas de parpadeo
     }
   }, [extractDataInBatches, onUpdateFormData, questions, saveCachedExtraction]);
 
@@ -394,7 +484,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
     const fieldsList = completedFieldNames.join(", ");
     const moreFields = completedFields > 3 ? ` y ${completedFields - 3} más` : "";
     
-    return `He extraído automáticamente ${completedFields} campos, incluyendo ${fieldsList}${moreFields}. Continuemos con los campos restantes.`;
+    return `¡Genial! He extraído automáticamente ${completedFields} campos de tu proyecto (marcados con 'Auto'), incluyendo ${fieldsList}${moreFields}. Continuemos con los campos restantes.`;
   }, [questions]);
 
   // Añadir esta función al inicio del componente
@@ -409,7 +499,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
   const handleSend = React.useCallback(async (answer) => {
     setChatHistory(prev => [...prev, { sender: 'user', text: answer }]);
     if (currentIndex === -1) {
-      setIsTyping(true);
+      setTypingWithMinDuration(true); // Iniciar indicador de escritura
       try {
         const cachedData = getCachedExtraction(answer);
         if (cachedData) {
@@ -441,8 +531,9 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
             }
           });
           
-          const autoCompletedFields = cachedData.autoCompletedFields || [];
-          onUpdateFormData(mappedFormData, autoCompletedFields);
+          const autoFields = cachedData.autoCompletedFields || [];
+          setAutoCompletedFields(autoFields);
+          onUpdateFormData(mappedFormData, autoFields);
           
           setChatHistory(prev => [...prev, {
             sender: 'bot',
@@ -484,25 +575,33 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
             )
           ).slice(0, 10); // Aumentar a 10 para tener más posibilidades
           console.log("Preguntas prioritarias seleccionadas:", priorityQuestions.map(q => q.Description));
+          
+          // Agregar mensaje de análisis sin cambiar el estado de isTyping
           setChatHistory(prev => [...prev, {
             sender: 'bot',
-            text: 'Estoy analizando tu proyecto y completando automáticamente algunos campos en segundo plano. Puedes continuar respondiendo las preguntas mientras tanto.',
+            text: 'Estoy analizando tu proyecto y completando automáticamente algunos campos del formulario. Los campos identificados aparecerán con una etiqueta "(Auto)". Puedes continuar respondiendo preguntas mientras termino el análisis.',
             questionId: 'background-extraction-start'
           }]);
-          // Iniciar extracción prioritaria
+          
+          // Iniciar extracción prioritaria sin cambiar isTyping
           const quickResult = await extractDataInBatches(answer, priorityQuestions);
           if (quickResult && quickResult.data) {
             // Actualizar formulario con datos prioritarios
-            onUpdateFormData(quickResult.data, quickResult.autoCompletedFields);
-            // Mostrar breve resumen
+            const quickFields = quickResult.autoCompletedFields || [];
+            setAutoCompletedFields(quickFields);
+            onUpdateFormData(quickResult.data, quickFields);
+            
+            // Mostrar breve resumen sin cambiar isTyping
             setChatHistory(prev => [...prev, {
               sender: 'bot',
               questionId: 'quick-extraction'
             }]);
           }
+          
           // Fase 2: Comenzar extracción completa en segundo plano
           setIsExtracting(true);
           setExtractionProgress(0);
+          
           // Dividir preguntas en lotes para procesamiento en segundo plano
           const batchSize = 20;
           const remainingQuestions = questions.filter(q => !quickResult?.data[q.IDQuestion]);
@@ -510,6 +609,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
           for (let i = 0; i < remainingQuestions.length; i += batchSize) {
             batches.push(remainingQuestions.slice(i, i + batchSize));
           }
+          
           // Iniciar primera pregunta mientras sigue extracción
           const firstUnansweredIndex = questions.findIndex(
             (q, idx) => {
@@ -522,9 +622,13 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
                       isFieldEmpty(quickResult.data, q.IDQuestion));
             }
           );
+          
           if (firstUnansweredIndex !== -1 && firstUnansweredIndex !== currentIndex) {
             setCurrentIndex(firstUnansweredIndex);
+            // Solo cambiar isTyping a false cuando ya tenemos la siguiente pregunta lista
+            setTypingWithMinDuration(false);
           }
+          
           // Procesar lotes en segundo plano
           processBatchesInBackground(answer, batches, quickResult?.data || {});
         }
@@ -536,71 +640,77 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
           questionId: 'error-extraction'
         }]);
         setCurrentIndex(0);
-      } finally {
-        setIsTyping(false);
+        setTypingWithMinDuration(false);
       }
     } else {
-      const currentQuestion = questions[currentIndex];
-      if (currentQuestion.Type === 3 && currentQuestion.Answers) {
-        const userAnswer = answer.trim().toLowerCase();
-        const questionAnswers = currentQuestion.Answers;
-        let matchedAnswer = questionAnswers.find(
-          ans => ans.Description.toLowerCase() === userAnswer
-        );
-        if (!matchedAnswer) {
-          matchedAnswer = questionAnswers.find(
-            ans => ans.Description.toLowerCase().includes(userAnswer) || 
-                  userAnswer.includes(ans.Description.toLowerCase())
+      setTypingWithMinDuration(true);
+      try {
+        const currentQuestion = questions[currentIndex];
+        if (currentQuestion.Type === 3 && currentQuestion.Answers) {
+          const userAnswer = answer.trim().toLowerCase();
+          const questionAnswers = currentQuestion.Answers;
+          let matchedAnswer = questionAnswers.find(
+            ans => ans.Description.toLowerCase() === userAnswer
           );
-          if (!matchedAnswer && userAnswer.length === 1) {
+          if (!matchedAnswer) {
             matchedAnswer = questionAnswers.find(
-              ans => ans.Description.toLowerCase().startsWith(userAnswer)
+              ans => ans.Description.toLowerCase().includes(userAnswer) || 
+                    userAnswer.includes(ans.Description.toLowerCase())
             );
+            if (!matchedAnswer && userAnswer.length === 1) {
+              matchedAnswer = questionAnswers.find(
+                ans => ans.Description.toLowerCase().startsWith(userAnswer)
+              );
+            }
           }
-        }
-        if (matchedAnswer) {
-          onUpdateFormData({ [currentQuestion.IDQuestion]: matchedAnswer.CodAnswer.toString() });
-        } else {
-          onUpdateFormData({ [currentQuestion.IDQuestion]: answer });
-        }
-      } else if (currentQuestion.Type === 4 && currentQuestion.Answers) {
-        const userSelections = answer.split(',').map(item => item.trim().toLowerCase());
-        const questionAnswers = currentQuestion.Answers;
-        const selectedValues = [];
-        userSelections.forEach(selection => {
-          const matchedAnswer = questionAnswers.find(
-            ans => ans.Description.toLowerCase().includes(selection) || 
-                   selection.includes(ans.Description.toLowerCase())
-          );
           if (matchedAnswer) {
-            selectedValues.push(matchedAnswer.CodAnswer.toString());
+            onUpdateFormData({ [currentQuestion.IDQuestion]: matchedAnswer.CodAnswer.toString() });
+          } else {
+            onUpdateFormData({ [currentQuestion.IDQuestion]: answer });
           }
-        });
-        if (selectedValues.length > 0) {
-          onUpdateFormData({ [currentQuestion.IDQuestion]: selectedValues });
+        } else if (currentQuestion.Type === 4 && currentQuestion.Answers) {
+          const userSelections = answer.split(',').map(item => item.trim().toLowerCase());
+          const questionAnswers = currentQuestion.Answers;
+          const selectedValues = [];
+          userSelections.forEach(selection => {
+            const matchedAnswer = questionAnswers.find(
+              ans => ans.Description.toLowerCase().includes(selection) || 
+                     selection.includes(ans.Description.toLowerCase())
+            );
+            if (matchedAnswer) {
+              selectedValues.push(matchedAnswer.CodAnswer.toString());
+            }
+          });
+          if (selectedValues.length > 0) {
+            onUpdateFormData({ [currentQuestion.IDQuestion]: selectedValues });
+          } else {
+            onUpdateFormData({ [currentQuestion.IDQuestion]: answer });
+          }
         } else {
           onUpdateFormData({ [currentQuestion.IDQuestion]: answer });
         }
-      } else {
-        onUpdateFormData({ [currentQuestion.IDQuestion]: answer });
-      }
-      const nextUnansweredIndex = questions.findIndex(
-        (q, idx) => {
-          return idx > currentIndex && 
-                 q && 
-                 q.IDQuestion && 
-                 isFieldEmpty(safeFormData, q.IDQuestion);
+        
+        const nextUnansweredIndex = questions.findIndex(
+          (q, idx) => {
+            return idx > currentIndex && 
+                   q && 
+                   q.IDQuestion && 
+                   isFieldEmpty(safeFormData, q.IDQuestion);
+          }
+        );
+        
+        if (nextUnansweredIndex !== -1) {
+          setCurrentIndex(nextUnansweredIndex);
+        } else {
+          setChatHistory(prev => [...prev, {
+            sender: 'bot',
+            text: '¡Gracias! Has completado todas las preguntas.',
+            questionId: 'end'
+          }]);
+          setCurrentIndex(questions.length);
         }
-      );
-      if (nextUnansweredIndex !== -1) {
-        setCurrentIndex(nextUnansweredIndex);
-      } else {
-        setChatHistory(prev => [...prev, {
-          sender: 'bot',
-          text: '¡Gracias! Has completado todas las preguntas.',
-          questionId: 'end'
-        }]);
-        setCurrentIndex(questions.length);
+      } finally {
+        setTypingWithMinDuration(false);
       }
     }
   }, [currentIndex, onUpdateFormData, questions, showCompletedFieldsSummary, extractDataInBatches, processBatchesInBackground, safeFormData]);
@@ -635,7 +745,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
           return;
         }
 
-        setIsTyping(true);
+        setTypingWithMinDuration(true);
         try {
           const response = await fetch(`${LOCAL_API_URL}/generate_question`, {
             method: 'POST',
@@ -678,7 +788,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
             questionId: currentQuestion.IDQuestion
           }]);
         } finally {
-          setIsTyping(false);
+          setTypingWithMinDuration(false);
         }
       }
     };
@@ -687,9 +797,20 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
 
   useEffect(() => {
     if (chatMessagesAreaRef.current) {
-      chatMessagesAreaRef.current.scrollTop = chatMessagesAreaRef.current.scrollHeight;
+      // Ensure always scrolls to bottom after any state update
+      const scrollToBottom = () => {
+        if (chatMessagesAreaRef.current) {
+          chatMessagesAreaRef.current.scrollTop = chatMessagesAreaRef.current.scrollHeight;
+        }
+      };
+      
+      // Try immediately
+      scrollToBottom();
+      
+      // And also with a small delay to ensure DOM updated
+      setTimeout(scrollToBottom, 100);
     }
-  }, [chatHistory, safeFormData]); // Añadir safeFormData como dependencia
+  }, [chatHistory, isTyping, isExtracting, extractionProgress, isVisible, currentIndex]);
 
   useEffect(() => {
     if (isVisible && chatMessagesAreaRef.current) {
@@ -701,11 +822,16 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
 
   return (
     <div className="chatbot-wrapper">
+      <ChatHeader onClose={onClose} />
       <div className="chatbot-main-container">
         <div className="chat-card">
-          <ChatHeader onClose={onClose} />
           <div className="chat-card-body">
             <div className="chat-messages-area" ref={chatMessagesAreaRef}>
+              {chatHistory.length === 0 && (
+                <div className="empty-chat-message">
+                  Esperando tu mensaje...
+                </div>
+              )}
               {chatHistory.map((message, index) => {
                 // Comprobar si el mensaje es una pregunta y si es requerida
                 const isQuestion = message.questionId && message.sender === 'bot';
@@ -717,6 +843,11 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
                   safeFormData[message.questionId] !== null &&
                   safeFormData[message.questionId] !== '';
                 
+                // Determinar si el campo fue autocompletado
+                const isAutoCompleted = isQuestion && 
+                  (Array.isArray(autoCompletedFields) && autoCompletedFields.includes(message.questionId)) ||
+                  message.isAutoCompleted === true;
+                
                 // Determinar las clases CSS según estado
                 let requiredClass = '';
                 if (isRequired) {
@@ -726,10 +857,11 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
                 return (
                   <React.Fragment key={index}>
                     <div 
-                      className={`message ${message.sender} ${message.isAutoCompleted ? 'auto-completed' : ''} ${requiredClass}`}
+                      className={`message ${message.sender} ${isAutoCompleted ? 'auto-completed' : ''} ${requiredClass}`}
                     >
                       {message.text}
                       {isRequired && !isAnswered && <span className="required-indicator">*</span>}
+                      {isAutoCompleted && <span className="auto-tag">(Auto)</span>}
                     </div>
                     
                     {/* Mostrar botones de opciones si el mensaje tiene opciones disponibles */}
@@ -772,15 +904,17 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
                     <div 
                       className="progress-bar" 
                       role="progressbar" 
-                      style={{ width: `${extractionProgress}%` }} 
+                      style={{ 
+                        width: `${extractionProgress}%`, 
+                        transition: 'width 0.6s ease-in-out'
+                      }} 
                       aria-valuenow={extractionProgress} 
                       aria-valuemin="0" 
                       aria-valuemax="100"
                     >
-                      {extractionProgress}%
                     </div>
                   </div>
-                  <small>Analizando proyecto en segundo plano...</small>
+                  <small>Analizando tu proyecto en segundo plano ({Math.round(extractionProgress)}%)</small>
                 </div>
               )}
             </div>

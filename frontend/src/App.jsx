@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import FormularioManual from './components/FormularioManual/FormularioManual';
-import ChatBot from './components/ChatBot/ChatBot';
+import ChatBot from './components/Chatbot/ChatBot';
 import { fetchPreguntas } from './services/api';
 // eslint-disable-next-line no-unused-vars
 import { AnimatePresence, motion } from 'framer-motion';
 import { FaRobot, FaTimes } from 'react-icons/fa';
-import './App.css';
+// Import only the component-specific styles
+import './components/ChatButton/ChatButton.css';
 
 // Componente para el botón de chat
 const ChatButton = ({ onClick, isOpen }) => {
