@@ -182,81 +182,98 @@
 
 /* Grid de preguntas con ajustes */
 .questions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); /* Más responsive */
-  gap: 28px; 
+  display: flex;
+  flex-direction: column;
+  gap: 15px; 
   padding: 28px; 
 }
 
-/* Tarjetas de preguntas más elegantes */
+/* Diseño de filas en lugar de tarjetas */
 .question-card {
   background-color: white;
-  border-radius: 10px;
-  padding: 12px;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  padding: 16px 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--gray-300);
   transition: var(--transition);
-  height: calc(100% - 10px);
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  min-height: 70px;
+  width: 100%;
 }
 
 .question-card:hover {
   box-shadow: var(--shadow-md);
   border-color: var(--gray-400);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
+}
+
+/* Estructura interna de cada fila */
+.question-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 15px;
+}
+
+.form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.form-group label {
+  margin-bottom: 5px;
+  display: block;
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+/* Estilos para los inputs */
+input[type="text"],
+select,
+textarea {
+  width: 100%;
+  padding: 10px 15px;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: var(--transition);
+  background-color: #fff;
+  height: 42px;
+}
+
+/* Para campos autocompletados */
+.question-card.autocompletado {
+  background-color: #f0f7ff;
+  border-left: 4px solid var(--primary-color);
 }
 
 .question-card.required-answered {
   background-color: #f0fff4;
-  border-color: #b7e4c7;
+  border-left: 4px solid var(--success-color);
 }
 
 .question-card.required-unanswered {
   background-color: #fff5f5;
-  border-color: #f5c6cb;
+  border-left: 4px solid var(--danger-color);
 }
 
-/* Clase para campos autocompletados */
-.question-card.autocompletado {
-  background-color: #ebf8ff;
-  border: 2px solid #90cdf4;
-  box-shadow: 0 4px 10px rgba(66, 153, 225, 0.1);
-}
-
-.autocompletado-mark {
-  color: var(--primary-color);
-  font-style: normal;
-  font-weight: 600;
-  font-size: 0.85em;
-  margin-left: 5px;
-  background-color: var(--primary-light);
-  padding: 2px 8px;
-  border-radius: 12px;
-  display: inline-block;
-}
-
-.question-content {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+/* Para pantallas pequeñas */
+@media (max-width: 768px) {
+  .question-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .question-card {
+    padding: 18px;
+    gap: 10px;
+  }
 }
 
 /* Campos de formulario más modernos */
-.form-group label {
-  font-weight: 600;
-  font-size: 1rem;
-  margin-bottom: 10px;
-  display: block;
-  color: var(--gray-800);
-}
-
-.required-mark {
-  color: var(--danger-color);
-  margin-left: 4px;
-  font-weight: bold;
-}
-
 .form-text.text-muted {
   font-size: 0.85rem;
   margin-bottom: 12px;
@@ -266,20 +283,6 @@
 }
 
 /* Inputs más modernos */
-input[type="text"],
-select,
-textarea {
-  width: 100%;
-  padding: 9px 16px;
-  border: 1px solid var(--gray-300);
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: var(--transition);
-  background-color: #fff;
-  color: var(--gray-800);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
 input[type="text"]:focus,
 select:focus,
 textarea:focus {
