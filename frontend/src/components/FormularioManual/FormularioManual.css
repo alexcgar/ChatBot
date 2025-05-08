@@ -327,9 +327,10 @@ textarea {
 /* Botón de acción más moderno */
 .form-actions {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 35px;
-  padding: 0 5px;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding: 15px;
+  border-top: 1px solid #dee2e6;
 }
 
 .btn-submit {
@@ -359,6 +360,59 @@ textarea {
   background: linear-gradient(135deg, #a0aec0, #718096);
   cursor: not-allowed;
   opacity: 0.7;
+}
+
+/* Add these styles to FormularioManual.css */
+.floating-back-button {
+  position: fixed;
+  bottom: 30px;
+  right: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #3f51b5;
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 12px 20px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  z-index: 100;
+  opacity: 1;
+  transform: translateY(0);
+  animation: fadeInButton 0.3s ease-in-out;
+}
+
+@keyframes fadeInButton {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.floating-back-button:hover {
+  background-color: #303f9f;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+}
+
+.floating-back-button span {
+  margin-left: 8px;
+  font-weight: 500;
+}
+
+/* For smaller screens */
+@media (max-width: 768px) {
+  .floating-back-button {
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 15px;
+  }
 }
 
 /* Resumen de campos autocompletados */

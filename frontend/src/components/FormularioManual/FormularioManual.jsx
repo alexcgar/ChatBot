@@ -5,6 +5,7 @@ import FormSection from './FormSection';
 import { formSections } from './sectionConfig';
 // eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion';
+import { FaArrowUp } from 'react-icons/fa';
 
 function FormularioManual({ formData = {}, onFormChange, autocompletados = [] }) {
   const [localFormData, setLocalFormData] = useState(formData);
@@ -14,10 +15,29 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
   const [error, setError] = useState(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [selectedSectionId, setSelectedSectionId] = useState(null);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowBackToTop(true);
+      } else {
+        setShowBackToTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   useEffect(() => {
     console.log("FormularioManual recibió nueva formData:", formData);
-    // Combinar con el estado local para preservar cambios locales
     setLocalFormData(prevData => ({
       ...prevData,
       ...formData
@@ -26,7 +46,6 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
 
   useEffect(() => {
     console.log("localFormData actualizado:", localFormData);
-    // Verificar si hay diferencias con formData
     const differences = Object.entries(formData).filter(
       ([key, value]) => localFormData[key] !== value
     );
@@ -63,11 +82,9 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
 
         setQuestions(sortedQuestions);
 
-        // Siempre intentar iniciar con "datos-generales"
         const datosGeneralesId = 'datos-generales';
         const datosGeneralesSection = formSections.find(s => s.id === datosGeneralesId);
         
-        // Verificar primero si "datos-generales" tiene preguntas
         const hasGeneralQuestions = datosGeneralesSection && 
           sortedQuestions.some(q => 
             datosGeneralesSection.orderRanges.some(range => 
@@ -75,11 +92,9 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
             shouldShowQuestion(q)
           );
         
-        // Si tiene preguntas, seleccionarla; de lo contrario usar la lógica anterior
         if (hasGeneralQuestions) {
           setSelectedSectionId(datosGeneralesId);
         } else {
-          // Lógica original para buscar la primera sección con preguntas
           let firstSectionWithQuestionsId = null;
           for (const section of formSections) {
             const sectionQuestions = sortedQuestions.filter(q =>
@@ -134,10 +149,7 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
       } else if (type === 'radio') {
         newData[questionId] = value === 'true';
       } else if (type === 'select-one') {
-        // Asegurarse de que el valor del select se procese correctamente
         newData[questionId] = value;
-        
-        // Debug para ver qué valor se está guardando
         console.log(`Select value for ${questionId}:`, value);
       } else {
         newData[questionId] = value;
@@ -153,7 +165,6 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
     const questionId = question.IDQuestion;
     const value = localFormData[questionId] ?? '';
     
-    // Añade esto para debug
     if (question.Type === 3) {
       console.log(`Rendering select field ${questionId}:`, {
         selectedValue: value,
@@ -161,7 +172,6 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
       });
     }
 
-    // Añadir más logs de debug para valores de selects y otros campos
     if (question.Type === 3) {
       console.log(`Renderizando select ${questionId}:`, {
         valorActual: value,
@@ -173,7 +183,6 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
         })) || []
       });
       
-      // Verificar si hay coincidencia
       if (answers[questionId]) {
         const coincide = answers[questionId].some(
           a => String(a.CodAnswer) === String(value)
@@ -183,7 +192,6 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
     }
 
     if (question.Type === 3 && answers[questionId]) {
-      // Convertir value a string para comparación consistente
       const stringValue = value.toString();
       
       return (
@@ -198,7 +206,7 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
           {answers[questionId].map(ans => (
             <option 
               key={ans.CodAnswer} 
-              value={ans.CodAnswer.toString()} // Asegurar que sea string
+              value={ans.CodAnswer.toString()}
             >
               {ans.Description}
             </option>
@@ -395,7 +403,6 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
           </div>
 
           <div className="form-actions">
-           
             <button
               type="submit"
               className="btn-submit"
@@ -406,6 +413,24 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
           </div>
         </form>
       </div>
+
+      {showBackToTop && (
+        <button 
+          type="button"
+          className="floating-back-button"
+          onClick={() => {
+            const firstSection = formSections.find(s => 
+              questionsBySections[s.id] && questionsBySections[s.id].length > 0
+            );
+            if (firstSection) {
+              setSelectedSectionId(firstSection.id);
+              scrollToTop();
+            }
+          }}
+        >
+          <FaArrowUp /> <span>Inicio</span>
+        </button>
+      )}
     </div>
   );
 }

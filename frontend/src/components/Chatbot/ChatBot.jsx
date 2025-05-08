@@ -581,7 +581,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
   ).length;
   
   const placeholder = emptyFieldsCount > 0
-    ? `Cuéntame sobre tu proyecto (${emptyFieldsCount} campos pendientes)...`
+    ? `Cuéntame sobre tu proyecto ...`
     : 'Cuéntame más sobre tu proyecto...';
 
   // ESTRUCTURA DE RENDERIZADO CORREGIDA
