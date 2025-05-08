@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaRobot, FaPaperPlane, FaTimes } from 'react-icons/fa';
+import { FaRobot, FaPaperPlane, FaTimes, FaMicrophone } from 'react-icons/fa';
 import './ChatBot.css';
 import { LOCAL_API_URL } from '../../services/api';
 
@@ -41,6 +41,14 @@ const ChatInput = ({ value = '', onChange, onSubmit, isTyping, placeholder }) =>
         placeholder={placeholder}
         disabled={isTyping}
       />
+      <button 
+        className="mic-button" 
+        onClick={() => console.log('Audio recording not implemented yet')}
+        disabled={isTyping}
+        title="Enviar mensaje de voz"
+      >
+        <FaMicrophone size={16} />
+      </button>
       <button 
         className="send-button" 
         onClick={onSubmit}
