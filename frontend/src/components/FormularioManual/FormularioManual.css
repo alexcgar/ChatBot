@@ -365,12 +365,12 @@ textarea {
 /* Add these styles to FormularioManual.css */
 .floating-back-button {
   position: fixed;
-  bottom: 30px;
+  bottom: 27px;
   right: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #3f51b5;
+  background-color: #4a73db; /* Actualizado al azul de la imagen */
   color: white;
   border: none;
   border-radius: 50px;
@@ -382,28 +382,24 @@ textarea {
   opacity: 1;
   transform: translateY(0);
   animation: fadeInButton 0.3s ease-in-out;
-}
-
-@keyframes fadeInButton {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  width: 50px; /* Tamaño fijo para hacerlo circular */
+  height: 50px;
+  padding: 0; /* Eliminar padding */
+  border-radius: 50%; /* Forma perfectamente circular */
 }
 
 .floating-back-button:hover {
-  background-color: #303f9f;
+  background-color: #3b5fcb; /* Un tono más oscuro para hover */
   transform: translateY(-2px);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
 }
 
 .floating-back-button span {
-  margin-left: 8px;
-  font-weight: 500;
+  display: none; /* Ocultar el texto "Inicio" para que sea solo icono */
+}
+
+.floating-back-button svg {
+  font-size: 20px; /* Hacer el icono un poco más grande */
 }
 
 /* For smaller screens */

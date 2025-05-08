@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaRobot, FaPaperPlane, FaTimes, FaMicrophone } from 'react-icons/fa';
+import { FaRobot, FaPaperPlane, FaTimes, FaMicrophone, FaStop } from 'react-icons/fa';
 import './ChatBot.css';
 import { LOCAL_API_URL } from '../../services/api';
 
@@ -22,13 +22,128 @@ const ChatHeader = ({ onClose }) => (
 
 // Mejorar el diseño del input
 const ChatInput = ({ value = '', onChange, onSubmit, isTyping, placeholder }) => {
-  // Función para manejar pulsación de tecla
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const timerRef = useRef(null);
+
+  // Handle keyboard submission
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey && !isTyping && value.trim()) {
       e.preventDefault(); // Evitar salto de línea
       onSubmit();
     }
   };
+
+  // Start recording function
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        // Create audio blob from recorded chunks
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        console.log("Audio recording completed, blob size:", audioBlob.size);
+        
+        // Set transcribing state
+        setIsTranscribing(true);
+        
+        // Show "Transcribing..." message
+        if (onChange) {
+          onChange({ target: { value: "Transcribiendo audio..." } });
+        }
+        
+        try {
+          // Create FormData to send the audio file
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'recording.webm');
+          
+          // Send to backend for transcription
+          const response = await fetch(`${LOCAL_API_URL}/transcribe_audio`, {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Server responded with ${response.status}`);
+          }
+          
+          const result = await response.json();
+          
+          if (result.success && result.text) {
+            // Set the transcribed text in the input field
+            onChange({ target: { value: result.text } });
+          } else {
+            throw new Error("Transcription failed");
+          }
+        } catch (error) {
+          console.error("Error transcribing audio:", error);
+          onChange({ target: { value: "Error al transcribir el audio." } });
+        } finally {
+          // Stop all tracks to release microphone
+          stream.getTracks().forEach(track => track.stop());
+          
+          // Reset recording state
+          setIsRecording(false);
+          setIsTranscribing(false);
+          setRecordingTime(0);
+          clearInterval(timerRef.current);
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      
+      // Start recording timer
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+      
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+      alert("No se pudo acceder al micrófono. Por favor, verifica los permisos.");
+    }
+  };
+
+  // Stop recording function
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  // Format recording time as MM:SS
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const secs = (seconds % 60).toString().padStart(2, '0');
+    return `${mins}:${secs}`;
+  };
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
+
+  const inputPlaceholder = isRecording 
+    ? "Grabando audio..." 
+    : isTranscribing 
+      ? "Transcribiendo audio..." 
+      : placeholder;
 
   return (
     <div className="chat-input-container">
@@ -38,21 +153,30 @@ const ChatInput = ({ value = '', onChange, onSubmit, isTyping, placeholder }) =>
         value={value}
         onChange={onChange}
         onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        disabled={isTyping}
+        placeholder={inputPlaceholder}
+        disabled={isTyping || isRecording}
       />
+      
+      {isRecording && (
+        <div className="recording-indicator">
+          <span className="recording-pulse"></span>
+          <span className="recording-time">{formatTime(recordingTime)}</span>
+        </div>
+      )}
+      
       <button 
-        className="mic-button" 
-        onClick={() => console.log('Audio recording not implemented yet')}
+        className={`mic-button ${isRecording ? 'recording' : ''}`}
+        onClick={isRecording ? stopRecording : startRecording}
         disabled={isTyping}
-        title="Enviar mensaje de voz"
+        title={isRecording ? "Detener grabación" : "Enviar mensaje de voz"}
       >
-        <FaMicrophone size={16} />
+        {isRecording ? <FaStop size={16} /> : <FaMicrophone size={16} />}
       </button>
+      
       <button 
         className="send-button" 
         onClick={onSubmit}
-        disabled={(!value || !value.trim()) || isTyping}
+        disabled={(!value || !value.trim()) || isTyping || isRecording || isTranscribing}
       >
         <FaPaperPlane size={16} />
       </button>

@@ -18,7 +18,10 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
   const [showBackToTop, setShowBackToTop] = useState(false);
 
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth' // Esto añade el efecto de scroll suave
+    });
   };
 
   useEffect(() => {

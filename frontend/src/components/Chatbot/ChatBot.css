@@ -28,19 +28,18 @@
   position: fixed;
   bottom: 25px;
   right: 20px;
-  width: 420px;
   max-width: 90vw;
   height: auto;
   max-height: calc(100vh - 160px);
-  min-height: 690px;
-  min-width: 530px;
+  min-height: 650px;
+  min-width: 580px;
   display: flex;
   flex-direction: column;
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
   overflow: hidden;
   animation: chat-appear var(--animation-duration) ease-out forwards;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.637);
   background-color: var(--gray-50);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   z-index: 1000;
@@ -233,6 +232,11 @@
   outline: none;
 }
 
+.chat-input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
 .mic-button, .send-button {
   display: flex;
   align-items: center;
@@ -271,6 +275,49 @@
 .send-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.mic-button:disabled, 
+.send-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Add these styles for the recording functionality */
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  margin-right: 10px;
+}
+
+.recording-pulse {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--danger-color);
+  margin-right: 8px;
+  animation: pulse 1.5s infinite;
+}
+
+.recording-time {
+  font-size: 14px;
+  color: var(--danger-color);
+  font-weight: 500;
+}
+
+.mic-button.recording {
+  background-color: var(--danger-color);
+  color: white;
+  animation: pulse-button 1.5s infinite;
+}
+
+.recording-indicator.transcribing {
+  color: var(--primary-color);
+}
+
+.recording-indicator.transcribing .recording-pulse {
+  background-color: var(--primary-color);
 }
 
 /* Style for empty chat message */
@@ -479,5 +526,32 @@
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse-button {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
   }
 }

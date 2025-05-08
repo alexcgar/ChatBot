@@ -1,7 +1,7 @@
 // API service for the application
 
 // URLs para las diferentes APIs
-export const LOCAL_API_URL = 'http://127.0.0.1:5002';
+export const LOCAL_API_URL = 'http://10.83.0.17:5002';
 const AUTH_URL = 'https://dinasa.wskserver.com:56544/api/login/authenticate';
 const EXTERNAL_API_URL = 'https://dinasa.wskserver.com:56544/api/HTDV2/consult';
 

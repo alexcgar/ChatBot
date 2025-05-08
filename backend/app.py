@@ -238,7 +238,49 @@ def extract_project_data():
         "autoCompletedFields": auto_completed_fields
     })
 
+# Add this new endpoint after your existing endpoints
 
+@app.route("/transcribe_audio", methods=["POST"])
+def transcribe_audio():
+    """Endpoint to transcribe audio using OpenAI's Whisper API"""
+    if 'audio' not in request.files:
+        return jsonify({"error": "No audio file provided"}), 400
+        
+    audio_file = request.files['audio']
+    
+    if audio_file.filename == '':
+        return jsonify({"error": "No audio file selected"}), 400
+        
+    if not openai_client:
+        return jsonify({"error": "OpenAI client not initialized"}), 500
+        
+    try:
+        # Save the file temporarily
+        temp_audio_path = "temp_audio.webm"
+        audio_file.save(temp_audio_path)
+        
+        # Open the file for the OpenAI API
+        with open(temp_audio_path, "rb") as audio_data:
+            # Call OpenAI's transcription API
+            transcript = openai_client.audio.transcriptions.create(
+                model="whisper-1", 
+                file=audio_data,
+                language="es"  # Spanish language for better accuracy
+            )
+        
+        # Clean up the temporary file
+        os.remove(temp_audio_path)
+        
+        # Return the transcription
+        return jsonify({
+            "success": True,
+            "text": transcript.text
+        })
+        
+    except Exception as e:
+        print(f"Error transcribing audio: {str(e)}")
+        return jsonify({"error": f"Error processing audio: {str(e)}"}), 500
+    
 @app.route("/start", methods=["POST"])
 def start_session():
     data = request.json

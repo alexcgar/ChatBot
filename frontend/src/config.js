@@ -1,2 +1,2 @@
 // filepath: frontend/src/config.js
-export const API_BASE_URL = 'http://127.0.0.1:5002'; // URL del servidor backend
+export const API_BASE_URL = 'http://10.83.0.17:5002'; // URL del servidor backend
