@@ -1,7 +1,9 @@
 import { 
   FaWarehouse, FaWater, FaShieldAlt, FaWind, 
   FaArchway, FaFilter, FaTint, FaFlask, 
-  FaTractor, FaSeedling, FaLeaf
+  FaTractor, FaSeedling, FaLeaf,
+  FaBaby,
+  FaTelegram
 } from 'react-icons/fa';
 
 // Configuración de las secciones del formulario
@@ -10,7 +12,7 @@ export const formSections = [
     id: 'datos-generales',
     title: 'Datos Generales',
     description: 'Información básica del proyecto',
-    icon: FaWarehouse,
+    icon: FaTelegram,
     color: '#3498db',
     orderRanges: [
       { min: 1, max: 6 },

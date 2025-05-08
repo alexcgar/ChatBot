@@ -339,27 +339,42 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
   return (
     <div className="formulario-manual-container">
       <div className="form-sidebar">
-        <div className="sidebar-header">
+        <div className="sidebar-header text-center">
           <h4>Secciones del Formulario</h4>
         </div>
         <ul>
-          {formSections.map(section => {
+          {formSections.map((section, index) => {
             const Icon = section.icon;
             const sectionQuestions = questionsBySections[section.id] || [];
             const hasQuestions = sectionQuestions.length > 0;
-
+            
+            // No mostrar secciones sin preguntas
             if (!hasQuestions) return null;
-
+            
+            // Agregar separadores entre grupos funcionales de secciones
+            const shouldShowDivider = index > 0 && index % 3 === 0;
+            
             return (
-              <li
-                key={section.id}
-                className={selectedSectionId === section.id ? 'active' : ''}
-                onClick={() => setSelectedSectionId(section.id)}
-                title={section.description}
-              >
-                {Icon && <Icon className="sidebar-icon" />}
-                {section.title}
-              </li>
+              <React.Fragment key={section.id}>
+                {shouldShowDivider && <div className="sidebar-divider"></div>}
+                <li
+                  className={`sidebar-item ${selectedSectionId === section.id ? 'active' : ''}`}
+                  onClick={() => setSelectedSectionId(section.id)}
+                  title={section.description}
+                >
+                  <div className="sidebar-item-content">
+                    {Icon && 
+                      <div className="sidebar-icon-wrapper" style={{color: section.color}}>
+                        <Icon className="sidebar-icon" />
+                      </div>
+                    }
+                    <span className="sidebar-item-text">{section.title}</span>
+                  </div>
+                  {sectionQuestions.length > 0 && (
+                    <span className="questions-count">{sectionQuestions.length}</span>
+                  )}
+                </li>
+              </React.Fragment>
             );
           })}
         </ul>

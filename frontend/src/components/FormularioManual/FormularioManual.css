@@ -15,77 +15,143 @@
 .form-sidebar {
   width: 280px; /* Mantenemos un ancho generoso */
   min-height: 100vh;
-  background: #ffffff;
-  border-right: 1px solid #e0e6ed; /* Borde más sutil */
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background-color: white;
+  overflow: hidden;
   padding: 0;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  box-shadow: 3px 0px 15px rgba(0, 0, 0, 0.04); /* Sombra lateral más delicada */
   z-index: 100; /* Asegurar que esté por encima del contenido */
   position: sticky;
   top: 0;
 }
 
 .sidebar-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid #e0e6ed;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-  color: white;
+  padding: 16px;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.08);
+  background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
 }
 
 .sidebar-header h4 {
   margin: 0;
-  font-size: 1.15rem;
+  color: #374151;
   font-weight: 600;
-  letter-spacing: 0.3px;
+  font-size: 16px;
 }
 
 .form-sidebar ul {
-  list-style: none;
-  padding: 12px 0;
+  padding: 0;
   margin: 0;
-  flex-grow: 1;
+  list-style: none;
 }
 
 .form-sidebar li {
-  padding: 16px 24px;
-  cursor: pointer;
-  border-left: 4px solid transparent;
-  transition: background-color 0.2s ease, color 0.2s ease, border-left-color 0.2s ease;
-  font-size: 0.95rem;
-  color: #4a5568; /* Un gris más oscuro para mejor contraste */
+  position: relative;
+  padding: 12px 16px;
   display: flex;
   align-items: center;
-  gap: 15px;
-  position: relative;
-  font-weight: 500; /* Un poco más de peso */
+  cursor: pointer;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.form-sidebar li:last-child {
+  border-bottom: none;
 }
 
 .form-sidebar li:hover {
-  background-color: #eef2f7; /* Un hover más sutil */
-  color: var(--primary-dark);
+  background-color: rgba(74, 115, 219, 0.08);
 }
 
 .form-sidebar li.active {
-  background-color: var(--primary-light);
-  border-left-color: var(--primary-color);
-  color: var(--primary-color);
-  font-weight: 600;
-}
-
-.form-sidebar li.active .sidebar-icon {
-  color: var(--primary-color);
+  background-color: rgba(74, 115, 219, 0.15);
+  border-left: 4px solid #4a73db;
+  padding-left: 12px;
 }
 
 .form-sidebar li .sidebar-icon {
-  font-size: 1.1rem;
-  color: #718096; /* Color de icono base */
-  transition: color 0.2s ease;
+  margin-right: 12px;
+  color: #6b7280;
+  min-width: 20px;
+  transition: all 0.2s ease;
 }
 
-.form-sidebar li:hover .sidebar-icon {
-  color: var(--primary-dark);
+.form-sidebar li.active .sidebar-icon {
+  color: #4a73db;
+}
+
+/* Estilos para los divisores entre grupos de secciones */
+.sidebar-divider {
+  height: 1px;
+  background: linear-gradient(to right, rgba(0,0,0,0.03), rgba(0,0,0,0.08), rgba(0,0,0,0.03));
+  margin: 8px 10px;
+}
+
+/* Mejorar el diseño de los elementos del sidebar */
+.sidebar-item {
+  position: relative;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-left: 4px solid transparent;
+}
+
+.sidebar-item-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.sidebar-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  width: 24px;
+  height: 24px;
+}
+
+.sidebar-item-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #4b5563;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Añadir un contador de preguntas */
+.questions-count {
+  background-color: rgba(0,0,0,0.06);
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+}
+
+.sidebar-item.active .questions-count {
+  background-color: #4a73db;
+  color: white;
+}
+
+/* Mejorar la apariencia en hover */
+.sidebar-item:hover {
+  background-color: rgba(74, 115, 219, 0.06);
+}
+
+.sidebar-item.active {
+  background-color: rgba(74, 115, 219, 0.10);
+  border-left-color: #4a73db;
 }
 
 /* Contenido principal */

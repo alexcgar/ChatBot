@@ -763,7 +763,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
                     </div>
                     <div className="message-content">
                       <div className="message-text">
-                        Analizando tu proyecto para extraer información relevante...
+                        Analizando tu proyecto para extraer información relevante, por favor continua con el formulario mientras yo trabajo en segundo plano. Puedes Cerrar el chat y volver más tarde.
                       </div>
                       <div className="progress-bar-container">
                         <div 
