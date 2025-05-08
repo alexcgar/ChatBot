@@ -1,12 +1,16 @@
 /* Estilos específicos del componente Chatbot */
 
-/* CONTENEDOR PRINCIPAL - Complete redesign */
+/* CONTENEDOR PRINCIPAL - Fixed position with viewport constraints */
 .chatbot-wrapper {
+  position: fixed;
+  bottom: 85px;
+  right: 30px;
   width: 400px;
   max-width: 90vw;
-  height: 550px;
-  min-height: 550px;
-  max-height: 70vh;
+  height: auto; /* Auto height based on content */
+  max-height: calc(100vh - 120px); /* Leave room for margins */
+  min-height: 650px; /* Minimum reasonable height */
+  min-width: 600px; /* Minimum reasonable width */
   display: flex;
   flex-direction: column;
   border-radius: 12px;
@@ -15,7 +19,15 @@
   animation: chat-appear var(--animation-duration) ease-out forwards;
   border: 1px solid rgba(0, 0, 0, 0.1);
   background-color: white;
-  position: relative;
+  z-index: 1000; /* Ensure it's above other content */
+}
+
+/* Ensure chat always stays in viewport even on small screens */
+@media (max-height: 700px) {
+  .chatbot-wrapper {
+    bottom: 10px;
+    max-height: calc(100vh - 20px);
+  }
 }
 
 /* Force container structure */
@@ -85,9 +97,11 @@
   background-color: #f5f7fa;
 }
 
+/* Ensure the chat messages area scrolls properly */
 .chat-messages-area {
   flex: 1;
   overflow-y: auto;
+  max-height: calc(100% - 130px); /* Subtract header and input heights */
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -131,9 +145,12 @@
 
 /* CHAT INPUT AREA */
 .chat-input-area {
+  position: sticky;
+  bottom: 0;
+  width: 100%;
+  background-color: white;
   padding: 0;
   border-top: 1px solid var(--gray-300);
-  background-color: white;
   border-bottom-left-radius: 12px;
   border-bottom-right-radius: 12px;
   flex-shrink: 0;
