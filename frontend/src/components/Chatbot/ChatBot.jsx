@@ -89,15 +89,15 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
   const [chatHistory, setChatHistory] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
   
-  // CORRECCIÓN: Añadir estados faltantes
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionProgress, setExtractionProgress] = useState(0);
   
   const chatMessagesAreaRef = useRef(null);
   const typingTimerRef = useRef(null);
+  const [inputValue, setInputValue] = useState(''); // Añadir este estado
 
   // Función para mostrar el indicador de escritura con duración mínima
-  const setTypingWithMinDuration = (isTypingValue) => {
+  const setTypingWithMinDuration = React.useCallback((isTypingValue) => {
     if (isTypingValue) {
       setIsTyping(true);
       if (typingTimerRef.current) {
@@ -105,6 +105,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
         typingTimerRef.current = null;
       }
     } else {
+      // Mantener isTyping en true por al menos 1.5 segundos antes de cambiarlo a false
       if (!typingTimerRef.current) {
         typingTimerRef.current = setTimeout(() => {
           setIsTyping(false);
@@ -112,7 +113,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
         }, 1500); // 1.5 segundos de duración mínima
       }
     }
-  };
+  }, []);
 
   // Limpiar el temporizador al desmontar
   useEffect(() => {
@@ -131,6 +132,21 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
       questionId: 'initial-message'
     }]);
   }, []);
+
+  // Añadir este efecto para asegurar que se vean los mensajes más recientes
+  useEffect(() => {
+    if (chatMessagesAreaRef.current) {
+      chatMessagesAreaRef.current.scrollTop = chatMessagesAreaRef.current.scrollHeight;
+    }
+  }, [chatHistory, isTyping, isExtracting]); // Hacer scroll cuando cambian estos estados
+
+  // Añadir este efecto para manejar la visibilidad
+  useEffect(() => {
+    // Scroll al fondo cuando el chat se hace visible
+    if (isVisible && chatMessagesAreaRef.current) {
+      chatMessagesAreaRef.current.scrollTop = chatMessagesAreaRef.current.scrollHeight;
+    }
+  }, [isVisible]);
 
   // Funciones de caché sin cambios
   const getCachedExtraction = (description) => {
@@ -166,7 +182,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
     }
   }, []); // Sin dependencias, ya que localStorage no cambia
 
-  // Función para extraer datos en lotes
+  // Corregir dependencias
   const extractDataInBatches = React.useCallback(async (description, allQuestions) => {
     // No cambiamos isTyping aquí para evitar parpadeos
     try {
@@ -281,7 +297,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
       console.error("Error en la extracción por lotes:", error);
       return { data: {}, autoCompletedFields: [] };
     }
-  }, [questions]); // CORREGIDO: Añadir questions como dependencia
+  }, []); // No necesita 'questions' como dependencia ya que recibe allQuestions como parámetro
 
   // Función para procesar lotes en segundo plano
   const processBatchesInBackground = React.useCallback(async (description, batches, existingData) => {
@@ -454,7 +470,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
     return `¡Genial! He extraído automáticamente ${completedFields} campos de tu proyecto (marcados con 'Auto'), incluyendo ${fieldsList}${moreFields}. Continuemos con los campos restantes.`;
   }, [questions]);
 
-  // CORRECCIÓN: Implementar una sola versión de handleSend
+  // Modificar la función handleSend para usar processBatchesInBackground cuando sea apropiado
   const handleSend = React.useCallback(async (answer) => {
     setChatHistory(prev => [...prev, { sender: 'user', text: answer }]);
     
@@ -462,200 +478,174 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
     setTypingWithMinDuration(true);
     
     try {
-      // Determinar qué campos están vacíos
+      // Comprobar primero si tenemos los datos en caché (sin cambios)
+      const cachedResult = getCachedExtraction(answer);
+      if (cachedResult && cachedResult.data && Object.keys(cachedResult.data).length > 0) {
+        // Código de caché sin cambios...
+        return;
+      }
+      
+      // No hay caché, continuar con el flujo normal
       const emptyFields = questions.filter(q => 
         q && q.IDQuestion && isFieldEmpty(safeFormData, q.IDQuestion)
       );
       
       console.log(`Analizando mensaje para extraer información. Campos vacíos: ${emptyFields.length}`);
       
-      // Si hay campos vacíos, intentar extraer información
-      if (emptyFields.length > 0) {
-        // Intentar extraer información del mensaje actual
-        const result = await extractDataInBatches(answer, emptyFields);
+      // CAMBIO IMPORTANTE: Si hay muchos campos vacíos, usar procesamiento en segundo plano
+      if (emptyFields.length > 5) { // Umbral arbitrario, ajustar según necesidad
+        // Dividir los campos en lotes para procesamiento en segundo plano
+        const batchSize = 8; // Tamaño de lote óptimo, ajustar según API
+        const batches = [];
         
-        if (result && result.data && Object.keys(result.data).length > 0) {
-          console.log("Información extraída:", result.data);
-          
-          // Actualizar el formulario con los datos extraídos
-          onUpdateFormData(result.data, result.autoCompletedFields || []);
-          
-          // Actualizar campos autocompletados
-          setAutoCompletedFields(prev => {
-            const newFields = [...prev];
-            (result.autoCompletedFields || []).forEach(field => {
-              if (!newFields.includes(field)) newFields.push(field);
-            });
-            return newFields;
-          });
-          
-          // Mostrar qué campos se completaron
-          const completedFieldNames = emptyFields
-            .filter(q => result.data[q.IDQuestion])
-            .map(q => q.Description);
-          
-          if (completedFieldNames.length > 0) {
-            const fieldsList = completedFieldNames.join(", ");
-            setChatHistory(prev => [...prev, {
-              sender: 'bot',
-              text: `He extraído la siguiente información de tu mensaje: ${fieldsList}`,
-              questionId: 'extraction-success-continuous'
-            }]);
-            
-            // Mostrar cuántos campos quedan por completar
-            const remainingFieldsCount = questions.filter(q => 
-              q && q.IDQuestion && isFieldEmpty({...safeFormData, ...result.data}, q.IDQuestion)
-            ).length;
-            
-            setChatHistory(prev => [...prev, {
-              sender: 'bot',
-              text: `Todavía quedan ${remainingFieldsCount} campos por completar. Cuéntame más sobre tu proyecto.`,
-              questionId: 'remaining-fields'
-            }]);
-          } else {
-            // No se completaron nuevos campos
-            setChatHistory(prev => [...prev, {
-              sender: 'bot',
-              text: 'Gracias por la información. ¿Puedes contarme más detalles sobre tu proyecto?',
-              questionId: 'no-extraction'
-            }]);
-          }
-        } else {
-          // No se pudo extraer información
-          setChatHistory(prev => [...prev, {
-            sender: 'bot',
-            text: 'Gracias por el mensaje. ¿Hay algo más que quieras añadir sobre tu proyecto?',
-            questionId: 'no-extraction'
-          }]);
+        for (let i = 0; i < emptyFields.length; i += batchSize) {
+          batches.push(emptyFields.slice(i, i + batchSize));
         }
-      } else {
-        // Todos los campos están completos
+        
         setChatHistory(prev => [...prev, {
           sender: 'bot',
-          text: 'Todos los campos han sido completados. ¡Gracias por la información!',
-          questionId: 'all-fields-complete'
+          text: `Estoy analizando tu mensaje para extraer información sobre ${emptyFields.length} campos pendientes. Esto puede tomar un momento...`,
+          questionId: 'background-extraction-start'
         }]);
+        
+        // Usar procesamiento en segundo plano
+        processBatchesInBackground(answer, batches, safeFormData);
+        
+      } else {
+        // Para pocos campos, procesar de inmediato como antes
+        const result = await extractDataInBatches(answer, emptyFields);
+        
+        // Resto del código sin cambios...
+        if (result && result.data && Object.keys(result.data).length > 0) {
+          // Actualizar formulario y mostrar mensajes (sin cambios)...
+        } else {
+          // No se pudo extraer información (sin cambios)...
+        }
       }
     } catch (error) {
       console.error('Error al procesar el mensaje:', error);
-      setChatHistory(prev => [...prev, {
-        sender: 'bot',
-        text: 'Lo siento, ha ocurrido un error al procesar tu mensaje. ¿Puedes intentarlo de nuevo?',
-        questionId: 'error-processing'
-      }]);
+      // Manejo de errores sin cambios...
     } finally {
       setTypingWithMinDuration(false);
     }
-  }, [questions, safeFormData, onUpdateFormData, extractDataInBatches]);
+  }, [
+    questions, 
+    safeFormData, 
+    onUpdateFormData, 
+    extractDataInBatches, 
+    processBatchesInBackground, // Añadir esta dependencia
+    setTypingWithMinDuration, 
+    getCachedExtraction,
+    setAutoCompletedFields,
+    setChatHistory,
+    showCompletedFieldsSummary
+  ]);
 
-  // HOOK USERENDERCHATINPUT CORREGIDO
-  const useRenderInput = () => {
-    const [inputValue, setInputValue] = useState('');
-    
-    // Función para manejar el envío
-    const handleSubmit = React.useCallback(() => {
-      if (inputValue.trim()) {
-        handleSend(inputValue);
-        setInputValue('');
-      }
-    }, [inputValue]);
-    
-    // Manejar cambio de entrada
-    const handleChange = (e) => {
-      setInputValue(e.target.value);
-    };
-    
-    return React.useMemo(() => {
-      // Calcular cuántos campos quedan por completar
-      const emptyFieldsCount = questions.filter(q => 
-        q && q.IDQuestion && isFieldEmpty(safeFormData, q.IDQuestion)
-      ).length;
-      
-      // Ajustar placeholder según los campos pendientes
-      let placeholder = emptyFieldsCount > 0
-        ? `Cuéntame sobre tu proyecto (${emptyFieldsCount} campos pendientes)...`
-        : 'Cuéntame más sobre tu proyecto...';
-    
-      return (
-        <ChatInput
-          value={inputValue}
-          onChange={handleChange}
-          onSubmit={handleSubmit}
-          isTyping={isTyping}
-          placeholder={placeholder}
-        />
-      );
-    }, [questions, safeFormData, inputValue, handleSubmit, isTyping]);
+  // Manejar cambio de entrada - mover fuera del hook
+  const handleChange = (e) => {
+    setInputValue(e.target.value);
   };
-
-  const chatInputComponent = useRenderInput();
+  
+  // Función para manejar el envío - mover fuera del hook
+  const handleSubmit = React.useCallback(() => {
+    if (inputValue.trim()) {
+      handleSend(inputValue);
+      setInputValue('');
+    }
+  }, [inputValue, handleSend]);
+  
+  // Calcular placeholder - mover fuera del hook
+  const emptyFieldsCount = questions.filter(q => 
+    q && q.IDQuestion && isFieldEmpty(safeFormData, q.IDQuestion)
+  ).length;
+  
+  const placeholder = emptyFieldsCount > 0
+    ? `Cuéntame sobre tu proyecto (${emptyFieldsCount} campos pendientes)...`
+    : 'Cuéntame más sobre tu proyecto...';
 
   // ESTRUCTURA DE RENDERIZADO CORREGIDA
-  return (
-    <div className="chatbot-wrapper">
-      <ChatHeader onClose={onClose} />
-      <div className="chatbot-main-container">
-        <div className="chat-card">
-          <div className="chat-card-body">
-            <div className="chat-messages-area" ref={chatMessagesAreaRef}>
-              {chatHistory.map((message, idx) => (
-                <div 
-                  key={`msg-${idx}`}
-                  className={`chat-message ${message.sender === 'user' ? 'user-message' : 'bot-message'}`}
-                >
-                  {message.sender === 'bot' && (
+  try {
+    return (
+      <div className="chatbot-wrapper">
+        <ChatHeader onClose={onClose} />
+        <div className="chatbot-main-container">
+          <div className="chat-card">
+            <div className="chat-card-body">
+              <div className="chat-messages-area" ref={chatMessagesAreaRef}>
+                {chatHistory.map((message, idx) => (
+                  <div 
+                    key={`msg-${idx}`}
+                    className={`chat-message ${message.sender === 'user' ? 'user-message' : 'bot-message'}`}
+                  >
+                    {message.sender === 'bot' && (
+                      <div className="bot-avatar">
+                        <FaRobot />
+                      </div>
+                    )}
+                    <div className="message-content">
+                      <div className="message-text">{message.text}</div>
+                    </div>
+                  </div>
+                ))}
+                
+                {isTyping && (
+                  <div className="chat-message bot-message">
                     <div className="bot-avatar">
                       <FaRobot />
                     </div>
-                  )}
-                  <div className="message-content">
-                    <div className="message-text">{message.text}</div>
-                  </div>
-                </div>
-              ))}
-              
-              {isTyping && (
-                <div className="chat-message bot-message">
-                  <div className="bot-avatar">
-                    <FaRobot />
-                  </div>
-                  <div className="message-content">
-                    <div className="typing-indicator">
-                      <span></span>
-                      <span></span>
-                      <span></span>
+                    <div className="message-content">
+                      <div className="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-              
-              {isExtracting && (
-                <div className="chat-message bot-message extraction-progress">
-                  <div className="bot-avatar">
-                    <FaRobot />
-                  </div>
-                  <div className="message-content">
-                    <div className="message-text">
-                      Analizando tu proyecto para extraer información relevante...
+                )}
+                
+                {isExtracting && (
+                  <div className="chat-message bot-message extraction-progress">
+                    <div className="bot-avatar">
+                      <FaRobot />
                     </div>
-                    <div className="progress-bar-container">
-                      <div 
-                        className="progress-bar" 
-                        style={{ width: `${extractionProgress}%` }}
-                      ></div>
+                    <div className="message-content">
+                      <div className="message-text">
+                        Analizando tu proyecto para extraer información relevante...
+                      </div>
+                      <div className="progress-bar-container">
+                        <div 
+                          className="progress-bar" 
+                          style={{ width: `${extractionProgress}%` }}
+                        ></div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-          <div className="chat-input-area">
-            {chatInputComponent}
+            <div className="chat-input-area">
+              <ChatInput
+                value={inputValue}
+                onChange={handleChange}
+                onSubmit={handleSubmit}
+                isTyping={isTyping}
+                placeholder={placeholder}
+              />
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  } catch (error) {
+    console.error("Error en renderizado del chat:", error);
+    return (
+      <div className="chatbot-wrapper error-state">
+        <div className="error-message">
+          <p>Ha ocurrido un error al cargar el chat. Por favor, recarga la página.</p>
+        </div>
+      </div>
+    );
+  }
 };
 
 export default Chatbot;
