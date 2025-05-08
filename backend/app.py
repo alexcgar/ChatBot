@@ -83,8 +83,17 @@ def extract_project_data():
     if not openai_client:
         return jsonify({"error": "Cliente OpenAI no inicializado"}), 500
 
-    # Procesar campos en lotes más pequeños
-    batch_size = 30  # Ajusta según sea necesario
+    # MEJORA: Detectar si es un mensaje corto para optimizar el prompt
+    is_short_message = len(project_description.split()) < 30
+    
+    # Para mensajes cortos, usar lotes más pequeños para mejorar precisión
+    batch_size = 10 if is_short_message else 30
+    
+    # Debug info
+    print(f"Procesando mensaje {'corto' if is_short_message else 'largo'} con batch_size={batch_size}")
+    print(f"Cantidad de campos a extraer: {len(question_descriptions)}")
+    
+    # Almacenar resultados
     all_extracted_data = {}
     auto_completed_fields = []  # Lista para seguir qué campos fueron autocompletados
     
@@ -94,26 +103,41 @@ def extract_project_data():
         # Preparar lista de campos para este lote
         fields_to_extract = []
         for desc in batch:
-            if desc == "Tipo De Oferta":
+            if "Tipo De Oferta" in desc:
                 fields_to_extract.append(f"- {desc} (opciones válidas exactas: 'B (En firme)', 'A (Estimada)', 'NINGUNO')")
             else:
                 fields_to_extract.append(desc)
 
         # Formatear campos para el prompt
         fields_prompt_list = "\n".join([f"- {field}" for field in fields_to_extract])
+        
+        # CORRECCIÓN: Usar el template adecuado según el tipo de mensaje
+        if is_short_message:
+            system_content = (
+                "Eres un asistente experto en extraer información específica de mensajes cortos "
+                "sobre proyectos agrícolas. El usuario enviará mensajes breves que pueden contener "
+                "información para completar campos de un formulario. Extrae ÚNICAMENTE los datos "
+                "que se mencionan explícitamente, sin inferir información adicional. "
+                "Extrae los siguientes campos en formato JSON:\n"
+                f"{fields_prompt_list}\n\n"
+                "Devuelve SOLO los campos que puedas extraer con certeza absoluta del mensaje. "
+                "Si no hay información clara para un campo, omítelo completamente."
+            )
+        else:
+            system_content = (
+                "Eres un asistente experto en agricultura que extrae información estructurada "
+                "de descripciones de proyectos agrícolas. A partir del texto proporcionado por el usuario, "
+                "extrae únicamente los siguientes campos en formato JSON. "
+                "Usa exactamente los nombres de campo proporcionados:\n"
+                f"{fields_prompt_list}\n\n"
+                "Rellena solo los campos que puedas deducir con alta confianza a partir del texto. "
+                "Si algún campo no está presente o no puedes deducirlo con certeza, omítelo completamente. "
+                "No inventes datos. No añadas explicaciones o campos adicionales."
+            )
 
         try:
             messages = [
-                {"role": "system", "content": (
-                    "Eres un asistente experto en agricultura que extrae información estructurada "
-                    "de descripciones de proyectos agrícolas. A partir del texto proporcionado por el usuario, "
-                    "extrae únicamente los siguientes campos en formato JSON. "
-                    "Usa exactamente los nombres de campo proporcionados:\n"
-                    f"{fields_prompt_list}\n\n"
-                    "Rellena solo los campos que puedas deducir con alta confianza a partir del texto. "
-                    "Si algún campo no está presente o no puedes deducirlo con certeza, devuélvelo con valor null. "
-                    "No inventes datos. No añadas explicaciones o campos adicionales."
-                )},
+                {"role": "system", "content": system_content},
                 {"role": "user", "content": project_description}
             ]
 
@@ -125,6 +149,9 @@ def extract_project_data():
             )
 
             extracted_data = chat_completion.choices[0].message.content.strip()
+            
+            # Resto del código existente para procesar la respuesta...
+            # [Mantener el código de procesamiento JSON sin cambios]
             
             # Parsear JSON (con manejo de errores mejorado como en la Solución 1)
             import json

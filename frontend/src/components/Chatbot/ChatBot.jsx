@@ -72,78 +72,39 @@ const OptionsDisplay = ({ options, onSelect }) => {
   );
 };
 
-const useRenderChatInput = (currentIndex, questions, isTyping, handleSend) => {
-  const [inputValue, setInputValue] = useState('');
-  
-  // Función para manejar el envío respetando la interfaz existente
-  const handleSubmit = React.useCallback(() => {
-    if (inputValue.trim()) {
-      handleSend(inputValue);
-      setInputValue('');
-    }
-  }, [inputValue, handleSend]);
-  
-  // Manejar cambio de entrada
-  const handleChange = (e) => {
-    setInputValue(e.target.value);
-  };
-  
-  return React.useMemo(() => {
-    if (currentIndex >= questions.length) return null;
-    
-    // Placeholder según el tipo de pregunta
-    let placeholder = 'Escribe tu consulta aquí...';
-    
-    if (currentIndex === -1) {
-      placeholder = 'Describe tu proyecto agrícola aquí...';
-    } else if (currentIndex < questions.length) {
-      const currentQuestion = questions[currentIndex];
-      if (currentQuestion.Type === 3) {
-        placeholder = `Selecciona una opción para ${currentQuestion.Description}...`;
-      } else if (currentQuestion.Type === 4) {
-        placeholder = `Selecciona opciones para ${currentQuestion.Description} (separa con coma)...`;
-      } else {
-        placeholder = `Escribe tu respuesta para ${currentQuestion.Description}...`;
-      }
-    }
-    
-    return (
-      <ChatInput
-        value={inputValue}
-        onChange={handleChange}
-        onSubmit={handleSubmit}
-        isTyping={isTyping}
-        placeholder={placeholder} // Añadir esta línea para utilizar el placeholder dinámico
-      />
-    );
-  }, [currentIndex, questions, inputValue, handleSubmit, isTyping]);
+// CORRECCIÓN: Mover isFieldEmpty fuera del componente para evitar duplicación
+const isFieldEmpty = (data, fieldId) => {
+  if (!data || !fieldId) return true;
+  if (typeof data !== 'object') return true;
+  const value = data[fieldId];
+  return value === undefined || value === null || value === '';
 };
 
+// Componente completo con correcciones
+
 const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isVisible }) => {
-  // Asegurarse de que formData siempre sea un objeto
+  // Estado necesario
   const safeFormData = React.useMemo(() => formData || {}, [formData]);
-  // Guardar los campos auto-completados en el estado local
   const [autoCompletedFields, setAutoCompletedFields] = useState([]);
   const [chatHistory, setChatHistory] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(-1); // -1 indica descripción inicial
   const [isTyping, setIsTyping] = useState(false);
+  
+  // CORRECCIÓN: Añadir estados faltantes
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionProgress, setExtractionProgress] = useState(0);
+  
   const chatMessagesAreaRef = useRef(null);
   const typingTimerRef = useRef(null);
 
   // Función para mostrar el indicador de escritura con duración mínima
   const setTypingWithMinDuration = (isTypingValue) => {
     if (isTypingValue) {
-      // Si estamos activando el indicador, simplemente activarlo
       setIsTyping(true);
-      // Limpiar cualquier temporizador anterior
       if (typingTimerRef.current) {
         clearTimeout(typingTimerRef.current);
         typingTimerRef.current = null;
       }
     } else {
-      // Si estamos desactivando, asegurar duración mínima de 1.5 segundos
       if (!typingTimerRef.current) {
         typingTimerRef.current = setTimeout(() => {
           setIsTyping(false);
@@ -162,14 +123,16 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
     };
   }, []);
 
+  // Mensaje inicial del chatbot
   useEffect(() => {
     setChatHistory([{
       sender: 'bot',
-      text: '¡Hola! Soy el asistente virtual de Novagric. Por favor, describe brevemente tu proyecto agrícola para comenzar.',
-      questionId: 'initial-description'
+      text: '¡Hola! Soy el asistente virtual de Novagric. Cuéntame sobre tu proyecto agrícola y extraeré automáticamente la información relevante. Puedes enviar varios mensajes con diferentes detalles y completaré los campos del formulario.',
+      questionId: 'initial-message'
     }]);
   }, []);
 
+  // Funciones de caché sin cambios
   const getCachedExtraction = (description) => {
     try {
       const cacheKey = `extraction_${description.substring(0, 50).replace(/[^a-z0-9]/gi, '_')}`;
@@ -203,6 +166,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
     }
   }, []); // Sin dependencias, ya que localStorage no cambia
 
+  // Función para extraer datos en lotes
   const extractDataInBatches = React.useCallback(async (description, allQuestions) => {
     // No cambiamos isTyping aquí para evitar parpadeos
     try {
@@ -317,15 +281,18 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
       console.error("Error en la extracción por lotes:", error);
       return { data: {}, autoCompletedFields: [] };
     }
-  }, []);
+  }, [questions]); // CORREGIDO: Añadir questions como dependencia
 
+  // Función para procesar lotes en segundo plano
   const processBatchesInBackground = React.useCallback(async (description, batches, existingData) => {
+    // Implementación con correcciones:
     // Garantizar que existingData sea un objeto
     let accumulatedData = {...(existingData || {})};
     let completedBatches = 0;
     
     // Iniciar con un progreso mínimo visible
     setExtractionProgress(5);
+    setIsExtracting(true); // CORRECCIÓN: Establecer isExtracting al iniciar
     
     // Definir el intervalo fuera del bloque try para que sea accesible en finally
     let progressInterval;
@@ -460,10 +427,10 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
       // Siempre marcar como 100% al finalizar
       setExtractionProgress(100);
       setIsExtracting(false);
-      // No cambiamos isTyping aquí para evitar problemas de parpadeo
     }
-  }, [extractDataInBatches, onUpdateFormData, questions, saveCachedExtraction]);
+  }, [extractDataInBatches, onUpdateFormData, questions, saveCachedExtraction, autoCompletedFields, setAutoCompletedFields]);
 
+  // Función para mostrar resumen de campos completados
   const showCompletedFieldsSummary = React.useCallback((completedData) => {
     // Verificar que completedData no sea null ni undefined
     if (!completedData) {
@@ -487,339 +454,143 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
     return `¡Genial! He extraído automáticamente ${completedFields} campos de tu proyecto (marcados con 'Auto'), incluyendo ${fieldsList}${moreFields}. Continuemos con los campos restantes.`;
   }, [questions]);
 
-  // Añadir esta función al inicio del componente
-  const isFieldEmpty = (data, fieldId) => {
-    // Si no hay data o no hay fieldId, considerarlo vacío
-    if (!data || !fieldId) return true;
-    if (typeof data !== 'object') return true;
-    const value = data[fieldId];
-    return value === undefined || value === null || value === '';
-  };
-
+  // CORRECCIÓN: Implementar una sola versión de handleSend
   const handleSend = React.useCallback(async (answer) => {
     setChatHistory(prev => [...prev, { sender: 'user', text: answer }]);
-    if (currentIndex === -1) {
-      setTypingWithMinDuration(true); // Iniciar indicador de escritura
-      try {
-        const cachedData = getCachedExtraction(answer);
-        if (cachedData) {
-          const mappedFormData = cachedData.data || {};
+    
+    // Indicar que el bot está escribiendo
+    setTypingWithMinDuration(true);
+    
+    try {
+      // Determinar qué campos están vacíos
+      const emptyFields = questions.filter(q => 
+        q && q.IDQuestion && isFieldEmpty(safeFormData, q.IDQuestion)
+      );
+      
+      console.log(`Analizando mensaje para extraer información. Campos vacíos: ${emptyFields.length}`);
+      
+      // Si hay campos vacíos, intentar extraer información
+      if (emptyFields.length > 0) {
+        // Intentar extraer información del mensaje actual
+        const result = await extractDataInBatches(answer, emptyFields);
+        
+        if (result && result.data && Object.keys(result.data).length > 0) {
+          console.log("Información extraída:", result.data);
           
-          // Procesar los datos en caché para campos select
-          questions.forEach(question => {
-            if (question.Type === 3 && mappedFormData[question.IDQuestion] && 
-                Array.isArray(question.Answers) && question.Answers.length > 0) {
-              
-              const cachedValue = String(mappedFormData[question.IDQuestion]).toLowerCase();
-              
-              // Verificar si el valor ya es un CodAnswer válido
-              const isValidCode = question.Answers.some(
-                ans => String(ans.CodAnswer).toLowerCase() === cachedValue
-              );
-              
-              // Si no es un código válido, buscar la coincidencia por descripción
-              if (!isValidCode) {
-                const matchedAnswer = question.Answers.find(
-                  ans => ans.Description.toLowerCase().includes(cachedValue) ||
-                        cachedValue.includes(ans.Description.toLowerCase())
-                );
-                
-                if (matchedAnswer) {
-                  mappedFormData[question.IDQuestion] = matchedAnswer.CodAnswer.toString();
-                }
-              }
-            }
+          // Actualizar el formulario con los datos extraídos
+          onUpdateFormData(result.data, result.autoCompletedFields || []);
+          
+          // Actualizar campos autocompletados
+          setAutoCompletedFields(prev => {
+            const newFields = [...prev];
+            (result.autoCompletedFields || []).forEach(field => {
+              if (!newFields.includes(field)) newFields.push(field);
+            });
+            return newFields;
           });
           
-          const autoFields = cachedData.autoCompletedFields || [];
-          setAutoCompletedFields(autoFields);
-          onUpdateFormData(mappedFormData, autoFields);
+          // Mostrar qué campos se completaron
+          const completedFieldNames = emptyFields
+            .filter(q => result.data[q.IDQuestion])
+            .map(q => q.Description);
           
-          setChatHistory(prev => [...prev, {
-            sender: 'bot',
-            text: showCompletedFieldsSummary(mappedFormData),
-            questionId: 'data-extracted'
-          }]);
-          
-          let foundValidQuestion = false;
-          let nextUnansweredIndex = -1;
-          
-          for (let i = 0; i < questions.length; i++) {
-            const q = questions[i];
-            if (q && q.IDQuestion && isFieldEmpty(mappedFormData, q.IDQuestion)) {
-              nextUnansweredIndex = i;
-              foundValidQuestion = true;
-              break;
-            }
-          }
-          
-          if (foundValidQuestion) {
-            setCurrentIndex(nextUnansweredIndex);
-          } else {
+          if (completedFieldNames.length > 0) {
+            const fieldsList = completedFieldNames.join(", ");
             setChatHistory(prev => [...prev, {
               sender: 'bot',
-              text: '¡Gracias! Se han completado todas las preguntas.',
-              questionId: 'end'
+              text: `He extraído la siguiente información de tu mensaje: ${fieldsList}`,
+              questionId: 'extraction-success-continuous'
             }]);
-            setCurrentIndex(questions.length);
+            
+            // Mostrar cuántos campos quedan por completar
+            const remainingFieldsCount = questions.filter(q => 
+              q && q.IDQuestion && isFieldEmpty({...safeFormData, ...result.data}, q.IDQuestion)
+            ).length;
+            
+            setChatHistory(prev => [...prev, {
+              sender: 'bot',
+              text: `Todavía quedan ${remainingFieldsCount} campos por completar. Cuéntame más sobre tu proyecto.`,
+              questionId: 'remaining-fields'
+            }]);
+          } else {
+            // No se completaron nuevos campos
+            setChatHistory(prev => [...prev, {
+              sender: 'bot',
+              text: 'Gracias por la información. ¿Puedes contarme más detalles sobre tu proyecto?',
+              questionId: 'no-extraction'
+            }]);
           }
         } else {
-          // AQUÍ ESTÁ EL CAMBIO PRINCIPAL: Extracción en dos fases
-          // Fase 1: Extracción rápida de campos prioritarios
-          const priorityFields = ["CodCompany", "Tipo De Oferta", "Destino"];
-          const priorityQuestions = questions.filter(q => 
-            q && q.Description && (
-              priorityFields.includes(q.Description) || 
-              q.Required === true ||
-              q.Description.includes("CodCompany")
-            )
-          ).slice(0, 10); // Aumentar a 10 para tener más posibilidades
-          console.log("Preguntas prioritarias seleccionadas:", priorityQuestions.map(q => q.Description));
-          
-          // Agregar mensaje de análisis sin cambiar el estado de isTyping
+          // No se pudo extraer información
           setChatHistory(prev => [...prev, {
             sender: 'bot',
-            text: 'Estoy analizando tu proyecto y completando automáticamente algunos campos del formulario. Los campos identificados aparecerán con una etiqueta "(Auto)". Puedes continuar respondiendo preguntas mientras termino el análisis.',
-            questionId: 'background-extraction-start'
+            text: 'Gracias por el mensaje. ¿Hay algo más que quieras añadir sobre tu proyecto?',
+            questionId: 'no-extraction'
           }]);
-          
-          // Iniciar extracción prioritaria sin cambiar isTyping
-          const quickResult = await extractDataInBatches(answer, priorityQuestions);
-          if (quickResult && quickResult.data) {
-            // Actualizar formulario con datos prioritarios
-            const quickFields = quickResult.autoCompletedFields || [];
-            setAutoCompletedFields(quickFields);
-            onUpdateFormData(quickResult.data, quickFields);
-            
-            // Mostrar breve resumen sin cambiar isTyping
-            setChatHistory(prev => [...prev, {
-              sender: 'bot',
-              questionId: 'quick-extraction'
-            }]);
-          }
-          
-          // Fase 2: Comenzar extracción completa en segundo plano
-          setIsExtracting(true);
-          setExtractionProgress(0);
-          
-          // Dividir preguntas en lotes para procesamiento en segundo plano
-          const batchSize = 20;
-          const remainingQuestions = questions.filter(q => !quickResult?.data[q.IDQuestion]);
-          const batches = [];
-          for (let i = 0; i < remainingQuestions.length; i += batchSize) {
-            batches.push(remainingQuestions.slice(i, i + batchSize));
-          }
-          
-          // Iniciar primera pregunta mientras sigue extracción
-          const firstUnansweredIndex = questions.findIndex(
-            (q, idx) => {
-              if (!q || !q.IDQuestion) return false;
-              
-              return idx > currentIndex && 
-                     q && 
-                     // Asegurar que quickResult existe y tiene data
-                     (quickResult === undefined || quickResult === null || 
-                      isFieldEmpty(quickResult.data, q.IDQuestion));
-            }
-          );
-          
-          if (firstUnansweredIndex !== -1 && firstUnansweredIndex !== currentIndex) {
-            setCurrentIndex(firstUnansweredIndex);
-            // Solo cambiar isTyping a false cuando ya tenemos la siguiente pregunta lista
-            setTypingWithMinDuration(false);
-          }
-          
-          // Procesar lotes en segundo plano
-          processBatchesInBackground(answer, batches, quickResult?.data || {});
         }
-      } catch (error) {
-        console.error('Error:', error);
+      } else {
+        // Todos los campos están completos
         setChatHistory(prev => [...prev, {
           sender: 'bot',
-          text: 'Hubo un error al analizar tu descripción. Continuaremos con las preguntas manualmente.',
-          questionId: 'error-extraction'
+          text: 'Todos los campos han sido completados. ¡Gracias por la información!',
+          questionId: 'all-fields-complete'
         }]);
-        setCurrentIndex(0);
-        setTypingWithMinDuration(false);
       }
-    } else {
-      setTypingWithMinDuration(true);
-      try {
-        const currentQuestion = questions[currentIndex];
-        if (currentQuestion.Type === 3 && currentQuestion.Answers) {
-          const userAnswer = answer.trim().toLowerCase();
-          const questionAnswers = currentQuestion.Answers;
-          let matchedAnswer = questionAnswers.find(
-            ans => ans.Description.toLowerCase() === userAnswer
-          );
-          if (!matchedAnswer) {
-            matchedAnswer = questionAnswers.find(
-              ans => ans.Description.toLowerCase().includes(userAnswer) || 
-                    userAnswer.includes(ans.Description.toLowerCase())
-            );
-            if (!matchedAnswer && userAnswer.length === 1) {
-              matchedAnswer = questionAnswers.find(
-                ans => ans.Description.toLowerCase().startsWith(userAnswer)
-              );
-            }
-          }
-          if (matchedAnswer) {
-            onUpdateFormData({ [currentQuestion.IDQuestion]: matchedAnswer.CodAnswer.toString() });
-          } else {
-            onUpdateFormData({ [currentQuestion.IDQuestion]: answer });
-          }
-        } else if (currentQuestion.Type === 4 && currentQuestion.Answers) {
-          const userSelections = answer.split(',').map(item => item.trim().toLowerCase());
-          const questionAnswers = currentQuestion.Answers;
-          const selectedValues = [];
-          userSelections.forEach(selection => {
-            const matchedAnswer = questionAnswers.find(
-              ans => ans.Description.toLowerCase().includes(selection) || 
-                     selection.includes(ans.Description.toLowerCase())
-            );
-            if (matchedAnswer) {
-              selectedValues.push(matchedAnswer.CodAnswer.toString());
-            }
-          });
-          if (selectedValues.length > 0) {
-            onUpdateFormData({ [currentQuestion.IDQuestion]: selectedValues });
-          } else {
-            onUpdateFormData({ [currentQuestion.IDQuestion]: answer });
-          }
-        } else {
-          onUpdateFormData({ [currentQuestion.IDQuestion]: answer });
-        }
-        
-        const nextUnansweredIndex = questions.findIndex(
-          (q, idx) => {
-            return idx > currentIndex && 
-                   q && 
-                   q.IDQuestion && 
-                   isFieldEmpty(safeFormData, q.IDQuestion);
-          }
-        );
-        
-        if (nextUnansweredIndex !== -1) {
-          setCurrentIndex(nextUnansweredIndex);
-        } else {
-          setChatHistory(prev => [...prev, {
-            sender: 'bot',
-            text: '¡Gracias! Has completado todas las preguntas.',
-            questionId: 'end'
-          }]);
-          setCurrentIndex(questions.length);
-        }
-      } finally {
-        setTypingWithMinDuration(false);
-      }
+    } catch (error) {
+      console.error('Error al procesar el mensaje:', error);
+      setChatHistory(prev => [...prev, {
+        sender: 'bot',
+        text: 'Lo siento, ha ocurrido un error al procesar tu mensaje. ¿Puedes intentarlo de nuevo?',
+        questionId: 'error-processing'
+      }]);
+    } finally {
+      setTypingWithMinDuration(false);
     }
-  }, [currentIndex, onUpdateFormData, questions, showCompletedFieldsSummary, extractDataInBatches, processBatchesInBackground, safeFormData]);
+  }, [questions, safeFormData, onUpdateFormData, extractDataInBatches]);
 
-  useEffect(() => {
-    const showQuestion = async () => {
-      if (currentIndex >= 0 && currentIndex < questions.length) {
-        const currentQuestion = questions[currentIndex];
-        const currentFormData = safeFormData;
-
-        // Evitar repetición si ya está contestada
-        if (!isFieldEmpty(currentFormData, currentQuestion.IDQuestion)) {
-          const nextUnansweredIndex = questions.findIndex(
-            (q, idx) => idx > currentIndex && isFieldEmpty(currentFormData, q.IDQuestion)
-          );
-          if (nextUnansweredIndex !== -1 && nextUnansweredIndex !== currentIndex) {
-            setCurrentIndex(nextUnansweredIndex);
-          } else {
-            setChatHistory(prev => [...prev, {
-              sender: 'bot',
-              text: '¡Gracias! Has completado todas las preguntas.',
-              questionId: 'end'
-            }]);
-            setCurrentIndex(questions.length);
-          }
-          return;
-        }
-
-        // Evitar repetir preguntas
-        const alreadyAsked = chatHistory.some(msg => msg.questionId === currentQuestion.IDQuestion);
-        if (alreadyAsked) {
-          return;
-        }
-
-        setTypingWithMinDuration(true);
-        try {
-          const response = await fetch(`${LOCAL_API_URL}/generate_question`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ input: currentQuestion.Description })
-          });
-          const data = await response.json();
-          let questionText = data.question || `¿Cuál es el ${currentQuestion.Description}?`;
-          
-          // Añadir opciones para preguntas de tipo selección
-          if ((currentQuestion.Type === 3 || currentQuestion.Type === 4) && 
-              Array.isArray(currentQuestion.Answers) && 
-              currentQuestion.Answers.length > 0) {
-            
-            // Añadir las opciones disponibles
-            questionText += '\n\nOpciones disponibles:';
-            currentQuestion.Answers.forEach((answer, idx) => {
-              questionText += `\n${idx + 1}. ${answer.Description}`;
-            });
-            
-            if (currentQuestion.Type === 3) {
-              questionText += '\n\nSelecciona una opción por su número o nombre.';
-            } else {
-              questionText += '\n\nPuedes seleccionar varias opciones separándolas por comas.';
-            }
-          }
-          
-          setChatHistory(prev => [...prev, {
-            sender: 'bot',
-            text: questionText,
-            questionId: currentQuestion.IDQuestion,
-            options: (currentQuestion.Type === 3 || currentQuestion.Type === 4) ? 
-                     currentQuestion.Answers : null
-          }]);
-        } catch (error) {
-          console.error('Error al generar la pregunta:', error);
-          setChatHistory(prev => [...prev, {
-            sender: 'bot',
-            text: `¿Cuál es el ${currentQuestion.Description}?`,
-            questionId: currentQuestion.IDQuestion
-          }]);
-        } finally {
-          setTypingWithMinDuration(false);
-        }
+  // HOOK USERENDERCHATINPUT CORREGIDO
+  const useRenderInput = () => {
+    const [inputValue, setInputValue] = useState('');
+    
+    // Función para manejar el envío
+    const handleSubmit = React.useCallback(() => {
+      if (inputValue.trim()) {
+        handleSend(inputValue);
+        setInputValue('');
       }
+    }, [inputValue]);
+    
+    // Manejar cambio de entrada
+    const handleChange = (e) => {
+      setInputValue(e.target.value);
     };
-    showQuestion();
-  }, [currentIndex, questions, safeFormData, chatHistory]);
-
-  useEffect(() => {
-    if (chatMessagesAreaRef.current) {
-      // Ensure always scrolls to bottom after any state update
-      const scrollToBottom = () => {
-        if (chatMessagesAreaRef.current) {
-          chatMessagesAreaRef.current.scrollTop = chatMessagesAreaRef.current.scrollHeight;
-        }
-      };
+    
+    return React.useMemo(() => {
+      // Calcular cuántos campos quedan por completar
+      const emptyFieldsCount = questions.filter(q => 
+        q && q.IDQuestion && isFieldEmpty(safeFormData, q.IDQuestion)
+      ).length;
       
-      // Try immediately
-      scrollToBottom();
-      
-      // And also with a small delay to ensure DOM updated
-      setTimeout(scrollToBottom, 100);
-    }
-  }, [chatHistory, isTyping, isExtracting, extractionProgress, isVisible, currentIndex]);
+      // Ajustar placeholder según los campos pendientes
+      let placeholder = emptyFieldsCount > 0
+        ? `Cuéntame sobre tu proyecto (${emptyFieldsCount} campos pendientes)...`
+        : 'Cuéntame más sobre tu proyecto...';
+    
+      return (
+        <ChatInput
+          value={inputValue}
+          onChange={handleChange}
+          onSubmit={handleSubmit}
+          isTyping={isTyping}
+          placeholder={placeholder}
+        />
+      );
+    }, [questions, safeFormData, inputValue, handleSubmit, isTyping]);
+  };
 
-  useEffect(() => {
-    if (isVisible && chatMessagesAreaRef.current) {
-      chatMessagesAreaRef.current.scrollTop = chatMessagesAreaRef.current.scrollHeight;
-    }
-  }, [isVisible]);
+  const chatInputComponent = useRenderInput();
 
-  const chatInputComponent = useRenderChatInput(currentIndex, questions, isTyping, handleSend);
-
+  // ESTRUCTURA DE RENDERIZADO CORREGIDA
   return (
     <div className="chatbot-wrapper">
       <ChatHeader onClose={onClose} />
@@ -827,94 +598,53 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
         <div className="chat-card">
           <div className="chat-card-body">
             <div className="chat-messages-area" ref={chatMessagesAreaRef}>
-              {chatHistory.length === 0 && (
-                <div className="empty-chat-message">
-                  Esperando tu mensaje...
-                </div>
-              )}
-              {chatHistory.map((message, index) => {
-                // Comprobar si el mensaje es una pregunta y si es requerida
-                const isQuestion = message.questionId && message.sender === 'bot';
-                const currentQuestionObj = isQuestion ? 
-                  questions.find(q => q.IDQuestion === message.questionId) : null;
-                const isRequired = currentQuestionObj?.Required === true;
-                const isAnswered = isQuestion && 
-                  safeFormData[message.questionId] !== undefined && 
-                  safeFormData[message.questionId] !== null &&
-                  safeFormData[message.questionId] !== '';
-                
-                // Determinar si el campo fue autocompletado
-                const isAutoCompleted = isQuestion && 
-                  (Array.isArray(autoCompletedFields) && autoCompletedFields.includes(message.questionId)) ||
-                  message.isAutoCompleted === true;
-                
-                // Determinar las clases CSS según estado
-                let requiredClass = '';
-                if (isRequired) {
-                  requiredClass = isAnswered ? 'required-answered' : 'required-unanswered';
-                }
-
-                return (
-                  <React.Fragment key={index}>
-                    <div 
-                      className={`message ${message.sender} ${isAutoCompleted ? 'auto-completed' : ''} ${requiredClass}`}
-                    >
-                      {message.text}
-                      {isRequired && !isAnswered && <span className="required-indicator">*</span>}
-                      {isAutoCompleted && <span className="auto-tag">(Auto)</span>}
+              {chatHistory.map((message, idx) => (
+                <div 
+                  key={`msg-${idx}`}
+                  className={`chat-message ${message.sender === 'user' ? 'user-message' : 'bot-message'}`}
+                >
+                  {message.sender === 'bot' && (
+                    <div className="bot-avatar">
+                      <FaRobot />
                     </div>
-                    
-                    {/* Mostrar botones de opciones si el mensaje tiene opciones disponibles */}
-                    {message.options && Array.isArray(message.options) && message.options.length > 0 && (
-                      <OptionsDisplay 
-                        options={message.options} 
-                        onSelect={(optionText) => {
-                          // Simular que el usuario escribe la opción y envía
-                          const input = document.querySelector('.chat-input');
-                          if (input) {
-                            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-                              window.HTMLInputElement.prototype, 'value'
-                            ).set;
-                            nativeInputValueSetter.call(input, optionText);
-                            input.dispatchEvent(new Event('input', { bubbles: true }));
-                            
-                            // Retrasar un poco el envío para que se vea el cambio
-                            setTimeout(() => handleSend(optionText), 100);
-                          } else {
-                            handleSend(optionText);
-                          }
-                        }}
-                      />
-                    )}
-                  </React.Fragment>
-                );
-              })}
-              {isTyping && (
-                <div className="message bot typing">
-                  <span className="typing-indicator">
-                    <span className="dot"></span>
-                    <span className="dot"></span>
-                    <span className="dot"></span>
-                  </span>
+                  )}
+                  <div className="message-content">
+                    <div className="message-text">{message.text}</div>
+                  </div>
                 </div>
-              )}
-              {isExtracting && (
-                <div className="background-extraction-indicator">
-                  <div className="progress">
-                    <div 
-                      className="progress-bar" 
-                      role="progressbar" 
-                      style={{ 
-                        width: `${extractionProgress}%`, 
-                        transition: 'width 0.6s ease-in-out'
-                      }} 
-                      aria-valuenow={extractionProgress} 
-                      aria-valuemin="0" 
-                      aria-valuemax="100"
-                    >
+              ))}
+              
+              {isTyping && (
+                <div className="chat-message bot-message">
+                  <div className="bot-avatar">
+                    <FaRobot />
+                  </div>
+                  <div className="message-content">
+                    <div className="typing-indicator">
+                      <span></span>
+                      <span></span>
+                      <span></span>
                     </div>
                   </div>
-                  <small>Analizando tu proyecto en segundo plano ({Math.round(extractionProgress)}%)</small>
+                </div>
+              )}
+              
+              {isExtracting && (
+                <div className="chat-message bot-message extraction-progress">
+                  <div className="bot-avatar">
+                    <FaRobot />
+                  </div>
+                  <div className="message-content">
+                    <div className="message-text">
+                      Analizando tu proyecto para extraer información relevante...
+                    </div>
+                    <div className="progress-bar-container">
+                      <div 
+                        className="progress-bar" 
+                        style={{ width: `${extractionProgress}%` }}
+                      ></div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

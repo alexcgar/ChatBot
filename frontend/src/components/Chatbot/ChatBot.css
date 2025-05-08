@@ -3,13 +3,13 @@
 /* CONTENEDOR PRINCIPAL - Fixed position with viewport constraints */
 .chatbot-wrapper {
   position: fixed;
-  bottom: 85px;
-  right: 30px;
+  bottom: 25px;
+  right: 10px;
   width: 400px;
   max-width: 90vw;
   height: auto; /* Auto height based on content */
-  max-height: calc(100vh - 120px); /* Leave room for margins */
-  min-height: 650px; /* Minimum reasonable height */
+  max-height: calc(100vh - 180px); /* Leave room for margins */
+  min-height: 600px; /* Minimum reasonable height */
   min-width: 600px; /* Minimum reasonable width */
   display: flex;
   flex-direction: column;
