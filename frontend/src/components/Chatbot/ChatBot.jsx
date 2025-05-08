@@ -149,7 +149,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
   }, [isVisible]);
 
   // Funciones de caché sin cambios
-  const getCachedExtraction = (description) => {
+  const getCachedExtraction = React.useCallback((description) => {
     try {
       const cacheKey = `extraction_${description.substring(0, 50).replace(/[^a-z0-9]/gi, '_')}`;
       const cached = localStorage.getItem(cacheKey);
@@ -167,18 +167,18 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
       
       console.log("Datos recuperados de caché:", parsedCache);
       return parsedCache;
-    } catch (e) {
-      console.warn("Error al recuperar caché:", e);
+    } catch (error) {
+      console.error("Error al recuperar caché:", error);
       return null;
     }
-  };
+  }, []); // No necesita dependencias ya que localStorage es estable
 
   const saveCachedExtraction = React.useCallback((description, extractedData) => {
     try {
       const cacheKey = `extraction_${description.substring(0, 50).replace(/[^a-z0-9]/gi, '_')}`;
       localStorage.setItem(cacheKey, JSON.stringify(extractedData));
-    } catch (e) {
-      console.warn("Error al guardar caché:", e);
+    } catch (error) {
+      console.error("Error al guardar caché:", error);
     }
   }, []); // Sin dependencias, ya que localStorage no cambia
 
@@ -299,7 +299,31 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
     }
   }, []); // No necesita 'questions' como dependencia ya que recibe allQuestions como parámetro
 
-  // Función para procesar lotes en segundo plano
+  // Función para mostrar resumen de campos completados
+  const showCompletedFieldsSummary = React.useCallback((completedData) => {
+    // Verificar que completedData no sea null ni undefined
+    if (!completedData) {
+      return "No he podido extraer ningún dato automáticamente. Vamos a completar el formulario paso a paso.";
+    }
+    
+    const completedFields = Object.keys(completedData).length;
+    
+    if (completedFields === 0) {
+      return "No he podido extraer ningún dato automáticamente. Vamos a completar el formulario paso a paso.";
+    }
+    
+    const completedFieldNames = questions
+      .filter(q => q && q.IDQuestion && completedData[q.IDQuestion])
+      .map(q => q.Description)
+      .slice(0, 3);
+      
+    const fieldsList = completedFieldNames.join(", ");
+    const moreFields = completedFields > 3 ? ` y ${completedFields - 3} más` : "";
+    
+    return `¡Genial! He extraído automáticamente ${completedFields} campos de tu proyecto (marcados con 'Auto'), incluyendo ${fieldsList}${moreFields}. Continuemos con los campos restantes.`;
+  }, [questions]);
+
+  // Modificar la dependencia del useCallback para processBatchesInBackground
   const processBatchesInBackground = React.useCallback(async (description, batches, existingData) => {
     // Implementación con correcciones:
     // Garantizar que existingData sea un objeto
@@ -393,8 +417,8 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
           const realProgress = Math.min(95, Math.floor((completedBatches / batches.length) * 100));
           setExtractionProgress(realProgress);
           
-        } catch (err) {
-          console.error("Error procesando lote en segundo plano:", err);
+        } catch (error) {
+          console.error("Error procesando lote en segundo plano:", error);
           // Incrementar contador de batches incluso si hubo error
           completedBatches++;
         }
@@ -417,10 +441,12 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
       // Notificación de finalización
       const numFieldsCompleted = Object.keys(accumulatedData || {}).length;
       setChatHistory(prev => {
-        // Add the new message
+        // Usar la función showCompletedFieldsSummary aquí
         const newHistory = [...prev, {
           sender: 'bot',
-          text: `He terminado de analizar tu proyecto. He completado automáticamente ${numFieldsCompleted} campos (marcados con 'Auto'). Puedes continuar completando el resto del formulario.`,
+          text: numFieldsCompleted > 0 
+            ? showCompletedFieldsSummary(accumulatedData)
+            : 'He analizado tu proyecto, pero no he podido extraer información relevante automáticamente.',
           questionId: 'background-extraction-complete',
           isBackgroundNotification: true
         }];
@@ -434,6 +460,8 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
         
         return newHistory;
       });
+    } catch (error) {
+      console.error("Error en la operación:", error);
     } finally {
       // En caso de error, asegurarse de limpiar el intervalo
       if (progressInterval) {
@@ -444,33 +472,10 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
       setExtractionProgress(100);
       setIsExtracting(false);
     }
-  }, [extractDataInBatches, onUpdateFormData, questions, saveCachedExtraction, autoCompletedFields, setAutoCompletedFields]);
+  }, [autoCompletedFields, extractDataInBatches, onUpdateFormData, questions, saveCachedExtraction, showCompletedFieldsSummary]); 
 
-  // Función para mostrar resumen de campos completados
-  const showCompletedFieldsSummary = React.useCallback((completedData) => {
-    // Verificar que completedData no sea null ni undefined
-    if (!completedData) {
-      return "No he podido extraer ningún dato automáticamente. Vamos a completar el formulario paso a paso.";
-    }
-    
-    const completedFields = Object.keys(completedData).length;
-    
-    if (completedFields === 0) {
-      return "No he podido extraer ningún dato automáticamente. Vamos a completar el formulario paso a paso.";
-    }
-    
-    const completedFieldNames = questions
-      .filter(q => q && q.IDQuestion && completedData[q.IDQuestion])
-      .map(q => q.Description)
-      .slice(0, 3);
-      
-    const fieldsList = completedFieldNames.join(", ");
-    const moreFields = completedFields > 3 ? ` y ${completedFields - 3} más` : "";
-    
-    return `¡Genial! He extraído automáticamente ${completedFields} campos de tu proyecto (marcados con 'Auto'), incluyendo ${fieldsList}${moreFields}. Continuemos con los campos restantes.`;
-  }, [questions]);
+  // Modificar la función handleSend para añadir la rama 'else' faltante
 
-  // Modificar la función handleSend para usar processBatchesInBackground cuando sea apropiado
   const handleSend = React.useCallback(async (answer) => {
     setChatHistory(prev => [...prev, { sender: 'user', text: answer }]);
     
@@ -478,67 +483,83 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
     setTypingWithMinDuration(true);
     
     try {
-      // Comprobar primero si tenemos los datos en caché (sin cambios)
+      // Comprobar si tenemos datos en caché
       const cachedResult = getCachedExtraction(answer);
       if (cachedResult && cachedResult.data && Object.keys(cachedResult.data).length > 0) {
         // Código de caché sin cambios...
         return;
       }
       
-      // No hay caché, continuar con el flujo normal
+      // Para el flujo normal con pocos campos
       const emptyFields = questions.filter(q => 
         q && q.IDQuestion && isFieldEmpty(safeFormData, q.IDQuestion)
       );
       
-      console.log(`Analizando mensaje para extraer información. Campos vacíos: ${emptyFields.length}`);
+      // IMPORTANTE: Añadir este console.log para diagnóstico
+      console.log(`Analizando mensaje. Campos vacíos: ${emptyFields.length}`);
       
-      // CAMBIO IMPORTANTE: Si hay muchos campos vacíos, usar procesamiento en segundo plano
-      if (emptyFields.length > 5) { // Umbral arbitrario, ajustar según necesidad
+      if (emptyFields.length <= 5) {
+        const result = await extractDataInBatches(answer, emptyFields);
+        
+        // Usar el resultado obtenido
+        if (result && result.data && Object.keys(result.data).length > 0) {
+          // Actualizar el formulario con los datos extraídos
+          onUpdateFormData(result.data, result.autoCompletedFields || []);
+          
+          // Actualizar campos autocompletados
+          setAutoCompletedFields(prev => {
+            const newFields = [...prev];
+            (result.autoCompletedFields || []).forEach(field => {
+              if (!newFields.includes(field)) newFields.push(field);
+            });
+            return newFields;
+          });
+          
+          // Mostrar mensaje de éxito
+          setChatHistory(prev => [...prev, {
+            sender: 'bot',
+            text: showCompletedFieldsSummary(result.data),
+            questionId: 'extraction-success'
+          }]);
+        } else {
+          // No se extrajo información
+          setChatHistory(prev => [...prev, {
+            sender: 'bot',
+            text: 'No he podido extraer información relevante de tu mensaje. ¿Puedes proporcionar más detalles sobre tu proyecto?',
+            questionId: 'no-extraction'
+          }]);
+        }
+      } else {
+        // MODIFICADO: No añadir mensaje de texto, solo activar el proceso en segundo plano
+        // que mostrará automáticamente la barra de progreso
+        
         // Dividir los campos en lotes para procesamiento en segundo plano
-        const batchSize = 8; // Tamaño de lote óptimo, ajustar según API
+        const batchSize = 8; // Tamaño de lote óptimo
         const batches = [];
         
         for (let i = 0; i < emptyFields.length; i += batchSize) {
           batches.push(emptyFields.slice(i, i + batchSize));
         }
         
-        setChatHistory(prev => [...prev, {
-          sender: 'bot',
-          text: `Estoy analizando tu mensaje para extraer información sobre ${emptyFields.length} campos pendientes. Esto puede tomar un momento...`,
-          questionId: 'background-extraction-start'
-        }]);
-        
-        // Usar procesamiento en segundo plano
+        // Llamar a la función processBatchesInBackground
         processBatchesInBackground(answer, batches, safeFormData);
-        
-      } else {
-        // Para pocos campos, procesar de inmediato como antes
-        const result = await extractDataInBatches(answer, emptyFields);
-        
-        // Resto del código sin cambios...
-        if (result && result.data && Object.keys(result.data).length > 0) {
-          // Actualizar formulario y mostrar mensajes (sin cambios)...
-        } else {
-          // No se pudo extraer información (sin cambios)...
-        }
       }
     } catch (error) {
-      console.error('Error al procesar el mensaje:', error);
-      // Manejo de errores sin cambios...
+      console.error("Error en la operación:", error);
     } finally {
       setTypingWithMinDuration(false);
     }
   }, [
     questions, 
     safeFormData, 
-    onUpdateFormData, 
-    extractDataInBatches, 
+    extractDataInBatches,
     processBatchesInBackground, // Añadir esta dependencia
     setTypingWithMinDuration, 
-    getCachedExtraction,
-    setAutoCompletedFields,
-    setChatHistory,
-    showCompletedFieldsSummary
+    getCachedExtraction, 
+    setChatHistory, 
+    showCompletedFieldsSummary, 
+    setAutoCompletedFields, 
+    onUpdateFormData
   ]);
 
   // Manejar cambio de entrada - mover fuera del hook
@@ -637,7 +658,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
       </div>
     );
   } catch (error) {
-    console.error("Error en renderizado del chat:", error);
+    console.error("Error en la operación:", error);
     return (
       <div className="chatbot-wrapper error-state">
         <div className="error-message">

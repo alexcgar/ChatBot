@@ -150,13 +150,10 @@ def extract_project_data():
 
             extracted_data = chat_completion.choices[0].message.content.strip()
             
-            # Resto del código existente para procesar la respuesta...
-            # [Mantener el código de procesamiento JSON sin cambios]
-            
-            # Parsear JSON (con manejo de errores mejorado como en la Solución 1)
+            # Reemplazar el bloque de procesamiento JSON existente con este:
             import json
             try:
-                # Si la respuesta viene envuelta en bloques de código, limpiarla
+                # Limpieza del formato JSON
                 extracted_data = extracted_data.strip()
                 
                 if extracted_data.startswith("```json"):
@@ -166,29 +163,40 @@ def extract_project_data():
                 if extracted_data.endswith("```"):
                     extracted_data = extracted_data[:-3].strip()
                 
-                # Intenta corregir JSON truncado o malformado
+                # Correcciones de formato
                 if extracted_data.endswith(","):
                     extracted_data = extracted_data[:-1] + "}"
                 
-                # Asegurar que hay llaves de apertura y cierre
                 if not extracted_data.startswith("{"):
                     extracted_data = "{" + extracted_data
                 if not extracted_data.endswith("}"):
                     extracted_data = extracted_data + "}"
                 
-                # Intentar parsear
+                # Parsear el JSON
                 extracted_json = json.loads(extracted_data)
                 
-                # Registrar los campos autocompletados (aquellos con valor no nulo)
+                # NUEVO: Filtrar valores no deseados
+                unwanted_values = ["no especificado", "no disponible", "no indicado", 
+                                   "desconocido", "sin especificar", "n/a", "na", "no aplica"]
+                
+                filtered_json = {}
                 for field, value in extracted_json.items():
-                    if value is not None and value != "":
-                        # Añadir el campo a all_extracted_data
-                        all_extracted_data[field] = value
-                        # Marcar este campo como autocompletado si no está ya en la lista
-                        if field not in auto_completed_fields:
-                            auto_completed_fields.append(field)
+                    if isinstance(value, str):
+                        # Normalizar: minúsculas, sin puntuación
+                        normalized = value.lower().strip().strip('.').strip(',')
+                        if normalized not in unwanted_values and normalized != "":
+                            filtered_json[field] = value
+                    elif value is not None:
+                        filtered_json[field] = value
+                
+                # Registrar solo los campos con valores válidos
+                for field, value in filtered_json.items():
+                    all_extracted_data[field] = value
+                    if field not in auto_completed_fields:
+                        auto_completed_fields.append(field)
                 
             except json.JSONDecodeError as json_err:
+                # Código de manejo de errores existente sin cambios...
                 print(f"Error parsing JSON: {json_err}")
                 print(f"Raw response: {extracted_data}")
                 

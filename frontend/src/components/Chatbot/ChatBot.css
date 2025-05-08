@@ -32,8 +32,8 @@
   max-width: 90vw;
   height: auto;
   max-height: calc(100vh - 160px);
-  min-height: 680px;
-  min-width: 480px;
+  min-height: 690px;
+  min-width: 530px;
   display: flex;
   flex-direction: column;
   border-radius: var(--border-radius);

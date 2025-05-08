@@ -289,8 +289,7 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
   if (isLoading && questions.length === 0) {
     return (
       <div className="form-loading-container">
-        <div className="loading-spinner"></div>
-        <h3>Cargando formulario...</h3>
+        <div className="loading-spinner blue-spinner"></div>
       </div>
     );
   }

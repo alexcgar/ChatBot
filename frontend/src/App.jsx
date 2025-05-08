@@ -62,7 +62,13 @@ function App() {
   }, [isChatOpen]);
 
   if (isLoading) {
-    return <div className="text-center mt-5">Cargando preguntas…</div>;
+    return (
+      <div className="text-center mt-5">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Cargando...</span>
+        </div>
+      </div>
+    );
   }
   if (error) {
     return <div className="alert alert-danger mt-5">{error}</div>;
