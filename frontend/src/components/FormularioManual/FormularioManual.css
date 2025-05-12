@@ -326,6 +326,187 @@ textarea {
   border-left: 4px solid var(--danger-color);
 }
 
+/* Mejorando la visualización de campos completados/autocompletados */
+.completed-field {
+  border-left: 3px solid #38b2ac !important;
+  background-color: rgba(56, 178, 172, 0.05) !important;
+}
+
+/* Icono de éxito para campos completados */
+.field-completed .form-control {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2338b2ac' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+}
+
+/* Mejorar la visualización del badge de autocompleto */
+.auto-badge {
+  display: inline-flex;
+  align-items: center;
+  background-color: #4299e1;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 1rem;
+  margin-left: 8px;
+  vertical-align: middle;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.auto-badge::before {
+  content: '✓';
+  margin-right: 3px;
+}
+
+/* Mejora del diseño de campos de formulario */
+.form-field-container {
+  position: relative;
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  border-radius: 8px;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.form-field-container:hover {
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Estilos especiales para campos autocompletados */
+.form-field-container.field-completed {
+  border-left: 4px solid #38b2ac;
+}
+
+/* Agregar colores de fondo sutiles */
+.form-field-container.field-completed {
+  background-color: rgba(56, 178, 172, 0.05);
+}
+
+/* Mejorar visualmente las etiquetas */
+.form-label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  color: #2d3748;
+  font-size: 0.95rem;
+}
+
+/* Estilo de entradas mejorado */
+input[type="text"],
+select {
+  display: block;
+  width: 100%;
+  padding: 0.625rem 1rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #4a5568;
+  background-color: #fff;
+  background-clip: padding-box;
+  border: 1px solid #cbd5e0;
+  border-radius: 0.375rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+input[type="text"]:focus,
+select:focus {
+  color: #4a5568;
+  background-color: #fff;
+  border-color: #63b3ed;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.25);
+}
+
+/* Mejorar los select */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234a5568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+}
+
+/* Resumen de campos autocompletados mejorado */
+.autocompletados-resumen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2rem;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, rgba(66, 153, 225, 0.1), rgba(99, 179, 237, 0.2));
+  border-radius: 8px;
+  border-left: 5px solid #4299e1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.autocompletados-resumen span {
+  display: flex;
+  align-items: center;
+  color: #2b6cb0;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.autocompletados-resumen span::before {
+  content: '';
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  margin-right: 10px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%232b6cb0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 11.08V12a10 10 0 1 1-5.93-9.14'/%3E%3Cpolyline points='22 4 12 14.01 9 11.01'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+/* Mejora la sección de Sí/No opciones */
+.si-no-options {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 0.25rem;
+}
+
+.form-check-input {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.2rem;
+}
+
+.form-check-label {
+  font-weight: 500;
+  color: #4a5568;
+}
+
+/* Botones de navegación */
+.floating-back-button {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4a73db, #3b5fcb);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 100;
+}
+
+.floating-back-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
+  background: linear-gradient(135deg, #3b5fcb, #2a4dad);
+}
+
 /* Para pantallas pequeñas */
 @media (max-width: 768px) {
   .question-content {
@@ -336,6 +517,12 @@ textarea {
   .question-card {
     padding: 18px;
     gap: 10px;
+  }
+  
+  .floating-back-button {
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 15px;
   }
 }
 
@@ -426,55 +613,6 @@ textarea {
   background: linear-gradient(135deg, #a0aec0, #718096);
   cursor: not-allowed;
   opacity: 0.7;
-}
-
-/* Add these styles to FormularioManual.css */
-.floating-back-button {
-  position: fixed;
-  bottom: 27px;
-  right: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #4a73db; /* Actualizado al azul de la imagen */
-  color: white;
-  border: none;
-  border-radius: 50px;
-  padding: 12px 20px;
-  cursor: pointer;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
-  z-index: 100;
-  opacity: 1;
-  transform: translateY(0);
-  animation: fadeInButton 0.3s ease-in-out;
-  width: 50px; /* Tamaño fijo para hacerlo circular */
-  height: 50px;
-  padding: 0; /* Eliminar padding */
-  border-radius: 50%; /* Forma perfectamente circular */
-}
-
-.floating-back-button:hover {
-  background-color: #3b5fcb; /* Un tono más oscuro para hover */
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
-}
-
-.floating-back-button span {
-  display: none; /* Ocultar el texto "Inicio" para que sea solo icono */
-}
-
-.floating-back-button svg {
-  font-size: 20px; /* Hacer el icono un poco más grande */
-}
-
-/* For smaller screens */
-@media (max-width: 768px) {
-  .floating-back-button {
-    bottom: 20px;
-    right: 20px;
-    padding: 10px 15px;
-  }
 }
 
 /* Resumen de campos autocompletados */

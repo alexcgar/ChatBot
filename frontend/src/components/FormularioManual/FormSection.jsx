@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-// eslint-disable-next-line no-unused-vars
-import { AnimatePresence, motion } from 'framer-motion';
+import './FormularioManual.css';
 
 const FormSection = ({
   section,
@@ -10,20 +9,18 @@ const FormSection = ({
   isFieldCompleted,
   autocompletados = [],
 }) => {
-  const [isExpanded, setIsExpanded] = useState(section.expanded);
+  const [isExpanded, setIsExpanded] = useState(true);
 
-  const completedQuestions = questions.filter(question => {
-    const value = formData[question.IDQuestion];
+  // Calcular cuántas preguntas están completadas
+  const completedQuestions = questions.filter(q => {
+    const value = formData[q.IDQuestion];
     return isFieldCompleted(value);
   }).length;
-
-  // Si la sección no tiene preguntas, no mostrarla
-  if (questions.length === 0) return null;
 
   return (
     <div className={`form-section ${isExpanded ? 'expanded' : 'collapsed'}`}>
       <div
-        className="form-section-header"
+        className="section-header"
         onClick={() => setIsExpanded(!isExpanded)}
         style={{ background: `linear-gradient(135deg, ${section.color}40, ${section.color}20)` }}
       >
@@ -58,7 +55,7 @@ const FormSection = ({
               >
                 <label
                   htmlFor={`question-${questionId}`}
-                  className={`form-label ${isCompleted ? 'completed-label' : ''}`}
+                  className="form-label"
                 >
                   {question.Description}
                   {isAutoCompleted && <span className="auto-badge">Auto</span>}

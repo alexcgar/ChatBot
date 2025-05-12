@@ -31,6 +31,7 @@ except Exception as e:
 # En producción debería usar una base de datos real
 session_store = {}
 
+
 @app.route("/generate_question", methods=["POST"])
 def generate_question():
     data = request.json
@@ -79,7 +80,8 @@ def generate_question():
 def extract_project_data():
     data = request.json
     project_description = data.get("description")
-    question_descriptions = data.get("questionDescriptions", [])  # Lista de todas las descripciones
+    # Lista de todas las descripciones
+    question_descriptions = data.get("questionDescriptions", [])
 
     if not project_description:
         return jsonify({"error": "Falta el campo 'description'"}), 400
@@ -89,45 +91,47 @@ def extract_project_data():
 
     # MEJORA: Detectar si es un mensaje corto para optimizar el prompt
     is_short_message = len(project_description.split()) < 30
-    
+
     # Para mensajes cortos, usar lotes más pequeños para mejorar precisión
     batch_size = 10 if is_short_message else 30
-    
+
     # Debug info
-    print(f"Procesando mensaje {'corto' if is_short_message else 'largo'} con batch_size={batch_size}")
+    print(
+        f"Procesando mensaje {'corto' if is_short_message else 'largo'} con batch_size={batch_size}")
     print(f"Cantidad de campos a extraer: {len(question_descriptions)}")
-    
+
     # Almacenar resultados
     all_extracted_data = {}
     auto_completed_fields = []  # Lista para seguir qué campos fueron autocompletados
-    
+
     for i in range(0, len(question_descriptions), batch_size):
         batch = question_descriptions[i:i+batch_size]
-        
+
         # Preparar lista de campos para este lote
         fields_to_extract = []
         for desc in batch:
             if "Tipo De Oferta" in desc:
-                fields_to_extract.append(f"- {desc} (opciones válidas exactas: 'B (En firme)', 'A (Estimada)', 'NINGUNO')")
+                fields_to_extract.append(
+                    f"- {desc} (opciones válidas exactas: 'B (En firme)', 'A (Estimada)', 'NINGUNO')")
             else:
                 fields_to_extract.append(desc)
 
         # Formatear campos para el prompt
-        fields_prompt_list = "\n".join([f"- {field}" for field in fields_to_extract])
-        
+        fields_prompt_list = "\n".join(
+            [f"- {field}" for field in fields_to_extract])
+
         # CORRECCIÓN: Usar el template adecuado según el tipo de mensaje
         if is_short_message:
             system_content = (
-                "Eres un asistente experto en extraer información específica de mensajes cortos "
-                "sobre proyectos agrícolas. El usuario enviará mensajes breves que pueden contener "
-                "información para completar campos de un formulario. Extrae ÚNICAMENTE los datos "
-                "que se mencionan explícitamente, sin inferir información adicional. "
-                "Extrae los siguientes campos en formato JSON:\n"
-                f"{fields_prompt_list}\n\n"
-                "Devuelve SOLO los campos que puedas extraer con certeza absoluta del mensaje. "
-                "Si no hay información clara para un campo, omítelo completamente."
-                "Solo rellena el campo si puedes deducirlo con alta confianza a partir del texto. "
-
+                "Eres un asistente experto en extraer información específica de mensajes "
+                "sobre proyectos agrícolas. Tu tarea es EXCLUSIVAMENTE extraer datos "
+                "concretos y factuales. IMPORTANTE:\n\n"
+                "1. NO generes valores como 'No mencionado', 'No disponible', 'Ninguno', etc.\n"
+                "2. Si un dato no está presente en el mensaje del usuario, OMÍTELO COMPLETAMENTE del JSON.\n"
+                "3. NUNCA inventes información ni rellenes campos con valores genéricos.\n"
+                "4. Solo extraigo datos explícitamente mencionados en el mensaje.\n\n"
+                f"Extrae los siguientes campos en formato JSON:\n{fields_prompt_list}\n\n"
+                "La omisión de un campo del JSON indica que no hay información disponible para él."
             )
         else:
             system_content = (
@@ -159,82 +163,96 @@ def extract_project_data():
             )
 
             extracted_data = chat_completion.choices[0].message.content.strip()
-            
+
             # Reemplazar el bloque de procesamiento JSON existente con este:
             import json
             try:
                 # Limpieza del formato JSON
                 extracted_data = extracted_data.strip()
-                
+
                 if extracted_data.startswith("```json"):
                     extracted_data = extracted_data[7:].strip()
                 elif extracted_data.startswith("```"):
                     extracted_data = extracted_data[3:].strip()
                 if extracted_data.endswith("```"):
                     extracted_data = extracted_data[:-3].strip()
-                
+
                 # Correcciones de formato
                 if extracted_data.endswith(","):
                     extracted_data = extracted_data[:-1] + "}"
-                
+
                 if not extracted_data.startswith("{"):
                     extracted_data = "{" + extracted_data
                 if not extracted_data.endswith("}"):
                     extracted_data = extracted_data + "}"
-                
+
                 # Parsear el JSON
                 extracted_json = json.loads(extracted_data)
-                
-                # NUEVO: Filtrar valores no deseados con una lista más completa
+
+                # Expandir la lista de valores no deseados
                 unwanted_values = [
                     # Valores negativos o indeterminados
-                    "no mencionado", "no especificado", "no disponible", "no indicado", 
+                    "no mencionado", "no especificado", "no disponible", "no indicado",
                     "desconocido", "sin especificar", "n/a", "na", "no aplica",
-                    "-- selecciona --", "seleccione", "selecciona", 
+                    "-- selecciona --", "seleccione", "selecciona",
                     "no se especifica", "por determinar", "por definir",
-                    
-                    # Valores ambiguos o comúnmente incorrectos
-                    "false", "true", "none", "null", "undefined",
-                    "dato no proporcionado", "información no disponible",
+
+                    # Valores vacíos o genéricos
+                    "false", "true", "none", "null", "undefined", "ninguno", "ninguna",
+                    "dato no proporcionado", "información no disponible", "vacio", "vacío",
                     "no hay datos", "pendiente", "a confirmar",
-                    
+
                     # Variaciones con mayúsculas
-                    "NO MENCIONADO", "NO ESPECIFICADO", "NO DISPONIBLE"
+                    "NO MENCIONADO", "NO ESPECIFICADO", "NO DISPONIBLE", "NINGUNO", "NINGUNA",
+
+                    # Valores imprecisos o no informativos
+                    "normal", "estándar", "estandar", "regular", "común", "comun",
+                    "varios", "multiple", "multiples", "múltiples"
                 ]
-                
+
+                # Modificar el filtrado para ser más estricto
                 filtered_json = {}
                 for field, value in extracted_json.items():
                     if isinstance(value, str):
                         # Normalizar: minúsculas, sin puntuación
                         normalized = value.lower().strip().strip('.').strip(',')
-                        
-                        # Comprobar contra lista de valores no deseados
-                        if (normalized not in [u.lower() for u in unwanted_values] and 
-                            normalized != "" and 
-                            not any(u.lower() in normalized for u in ["no mencionado", "no especificado"])):
-                            filtered_json[field] = value
-                    elif value is not None and value != False:
-                        # Solo incluir valores booleanos si son True 
-                        # (False a menudo es un valor por defecto)
+
+                        # Rechazar valores muy cortos no numéricos (probablemente no son respuestas válidas)
+                        if len(normalized) < 2 and not normalized.isdigit():
+                            continue
+
+                        # Rechazar valores que están en la lista de no deseados o que contienen subcadenas no deseadas
+                        if normalized in [u.lower() for u in unwanted_values] or any(
+                            u.lower() in normalized for u in [
+                                "no mencionado", "no especificado", "ninguno", "no disponible"
+                            ]
+                        ):
+                            continue
+
+                        # Solo guardar valores que pasan todas las validaciones
                         filtered_json[field] = value
-                
+                    elif value is not None and value != False:
+                        # Para valores booleanos, sólo incluir True (False a menudo es valor por defecto)
+                        filtered_json[field] = value
+
                 # Registrar solo los campos con valores válidos
                 for field, value in filtered_json.items():
                     all_extracted_data[field] = value
                     if field not in auto_completed_fields:
                         auto_completed_fields.append(field)
-                
+
             except json.JSONDecodeError as json_err:
                 # Código de manejo de errores existente sin cambios...
                 print(f"Error parsing JSON: {json_err}")
                 print(f"Raw response: {extracted_data}")
-                
+
                 # Plan B: Crear un JSON con los campos que podamos extraer
                 try:
                     # Regex para extraer pares clave-valor
                     import re
-                    pairs = re.findall(r'"([^"]+)"\s*:\s*("[^"]*"|null|\d+|true|false)', extracted_data)
-                    
+                    pairs = re.findall(
+                        r'"([^"]+)"\s*:\s*("[^"]*"|null|\d+|true|false)', extracted_data)
+
                     if pairs:
                         fallback_json = "{"
                         for i, (key, value) in enumerate(pairs):
@@ -242,9 +260,9 @@ def extract_project_data():
                             if i < len(pairs) - 1:
                                 fallback_json += ","
                         fallback_json += "}"
-                        
+
                         extracted_json = json.loads(fallback_json)
-                        
+
                         # Registrar solo los campos autocompletados
                         for field, value in extracted_json.items():
                             if value is not None and value != "" and value != "null":
@@ -253,8 +271,9 @@ def extract_project_data():
                                     auto_completed_fields.append(field)
                 except:
                     pass
-                
-                print(f"Error parsing response from AI, raw response: {extracted_data}")
+
+                print(
+                    f"Error parsing response from AI, raw response: {extracted_data}")
                 continue
 
         except Exception as e:
@@ -269,62 +288,65 @@ def extract_project_data():
 
 # Add this new endpoint after your existing endpoints
 
+
 @app.route("/transcribe_audio", methods=["POST"])
 def transcribe_audio():
     """Endpoint to transcribe audio using OpenAI's Whisper API"""
     if 'audio' not in request.files:
         return jsonify({"error": "No audio file provided"}), 400
-        
+
     audio_file = request.files['audio']
-    
+
     if audio_file.filename == '':
         return jsonify({"error": "No audio file selected"}), 400
-        
+
     if not openai_client:
         return jsonify({"error": "OpenAI client not initialized"}), 500
-        
+
     try:
         # Save the file temporarily
         temp_audio_path = "temp_audio.webm"
         audio_file.save(temp_audio_path)
-        
+
         # Open the file for the OpenAI API
         with open(temp_audio_path, "rb") as audio_data:
             # Call OpenAI's transcription API
             transcript = openai_client.audio.transcriptions.create(
-                model="whisper-1", 
+                model="whisper-1",
                 file=audio_data,
                 language="es"  # Spanish language for better accuracy
             )
-        
+
         # Clean up the temporary file
         os.remove(temp_audio_path)
-        
+
         # Return the transcription
         return jsonify({
             "success": True,
             "text": transcript.text
         })
-        
+
     except Exception as e:
         print(f"Error transcribing audio: {str(e)}")
         return jsonify({"error": f"Error processing audio: {str(e)}"}), 500
-    
+
+
 @app.route("/start", methods=["POST"])
 def start_session():
     data = request.json
     session_id = data.get("session_id")
     existing_answers = data.get("existing_answers", {})
-    
+
     if not session_id:
         return jsonify({"error": "Falta el campo 'session_id'"}), 400
-        
+
     # Guardar la sesión con las respuestas iniciales
     session_store[session_id] = {
         "answers": existing_answers,
-        "started_at": str(os.path.getmtime(__file__))  # Timestamp para seguimiento
+        # Timestamp para seguimiento
+        "started_at": str(os.path.getmtime(__file__))
     }
-    
+
     return jsonify({
         "status": "success",
         "message": "Sesión iniciada correctamente",
@@ -337,17 +359,17 @@ def save_answer():
     data = request.json
     session_id = data.get("session_id")
     answer = data.get("answer")
-    
+
     if not session_id:
         return jsonify({"error": "Falta el campo 'session_id'"}), 400
-        
+
     if not answer:
         return jsonify({"error": "Falta el campo 'answer'"}), 400
-        
+
     # Verificar si la sesión existe
     if session_id not in session_store:
         return jsonify({"error": "La sesión no existe o ha expirado"}), 404
-        
+
     # Almacenar la respuesta (asumiendo que answer tiene una estructura con ID de pregunta)
     # Si answer es un diccionario, agregar cada clave-valor
     if isinstance(answer, dict):
@@ -357,7 +379,7 @@ def save_answer():
         # Si es un solo valor, guardarlo con una clave genérica
         answer_id = f"answer_{len(session_store[session_id]['answers']) + 1}"
         session_store[session_id]["answers"][answer_id] = answer
-    
+
     return jsonify({
         "status": "success",
         "message": "Respuesta guardada correctamente"
@@ -371,33 +393,34 @@ def proxy_external_api():
         print(">>> Recibida petición al proxy de la API externa")
         print(f">>> Headers: {request.headers}")
         print(f">>> Body: {request.json}")
-        
+
         # Obtener el token de la cabecera
         auth_header = request.headers.get('Authorization')
         if not auth_header:
             return jsonify({"error": "Falta el token de autorización"}), 401
-        
+
         # Preparar la solicitud para reenviar a la API externa
         headers = {
             'Authorization': auth_header,
             'Content-Type': 'application/json'
         }
-        
+
         # URL real de la API externa
         external_api_url = 'https://erp.wskserver.com:56544/api/HTDV2/consult'
-        
+
         # Reenviar la solicitud a la API externa
         response = requests.post(
-            external_api_url, 
-            headers=headers, 
+            external_api_url,
+            headers=headers,
             json=request.json,
             verify=True  # Si la API externa usa HTTPS con un certificado válido
         )
-        
+
         # Antes de devolver la respuesta
         print(f">>> Respuesta de la API externa: {response.status_code}")
-        print(f">>> Contenido: {response.text[:200]}...")  # Primeros 200 caracteres
-        
+        # Primeros 200 caracteres
+        print(f">>> Contenido: {response.text[:200]}...")
+
         return response.json(), response.status_code
     except Exception as e:
         print(f">>> ERROR en proxy_external_api: {e}")
@@ -412,6 +435,7 @@ def serve_frontend(path):
         return send_from_directory(app.static_folder, path)
     else:
         return send_from_directory(app.static_folder, "index.html")
+
 
 if __name__ == "__main__":
     import ssl

@@ -186,9 +186,26 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
 
   const renderField = useCallback((question) => {
     const questionId = question.IDQuestion;
-    const value = localFormData[questionId] ?? '';
+    const rawValue = localFormData[questionId] ?? '';
     
-    // Determinar si el campo está completo o tiene solo valores por defecto
+    // Limpiar valores no deseados
+    let value = rawValue;
+    if (typeof rawValue === 'string') {
+      const lowerValue = rawValue.toLowerCase().trim();
+      const defaultValues = [
+        'no se especifica', 'no mencionado', 'no especificado',
+        'no disponible', 'no indicado', 'desconocido',
+        'sin especificar', 'n/a', 'na', 'no aplica'
+      ];
+      
+      if (defaultValues.includes(lowerValue) || 
+          lowerValue.includes('no mencionado') || 
+          lowerValue.includes('no especificado')) {
+        value = ''; // Reemplazar con string vacío
+      }
+    }
+    
+    // Determinar si el campo tiene un valor real
     const hasRealValue = isFieldCompleted(value);
     
     // Código para los campos tipo select
