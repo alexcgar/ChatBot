@@ -19,7 +19,7 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
   const [sectionStatuses, setSectionStatuses] = useState(() => {
     const initialStatuses = {};
     formSections.forEach(section => {
-      initialStatuses[section.id] = 'no';
+      initialStatuses[section.id] = section.id === 'datos-generales' ? 'yes' : 'no';
     });
     return initialStatuses;
   });
@@ -192,16 +192,62 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
   }, [onFormChange]);
 
   const handleSectionStatusChange = useCallback((sectionId, status) => {
+    if (sectionId === 'datos-generales' && status === 'no') {
+      return;
+    }
+    
+    const normalizedStatus = status?.toLowerCase(); // Normalize to lowercase
+    console.log(`Section ${sectionId} status changed to: ${normalizedStatus}`);
+    
     const newStatuses = {
       ...sectionStatuses,
-      [sectionId]: status
+      [sectionId]: normalizedStatus
     };
     setSectionStatuses(newStatuses);
+    
+    // If marking as "no", clear form data for this section's questions
+    if (normalizedStatus === 'no') {
+      console.log(`Clearing fields for section ${sectionId} marked as 'no'`);
+      
+      const sectionQuestions = questions.filter(q => {
+        const section = formSections.find(s => s.id === sectionId);
+        if (!section) return false;
+        
+        return section.orderRanges.some(range => 
+          q.Orden >= range.min && q.Orden <= range.max
+        );
+      });
+      
+      // Create a cleaned form data object
+      const cleanedData = {...localFormData};
+      let fieldsRemoved = false;
+      
+      sectionQuestions.forEach(q => {
+        if (q.IDQuestion && cleanedData[q.IDQuestion] !== undefined) {
+          delete cleanedData[q.IDQuestion];
+          fieldsRemoved = true;
+        }
+      });
+      
+      // Only update if fields were actually removed
+      if (fieldsRemoved) {
+        setLocalFormData(cleanedData);
+        
+        // Notify parent component about cleared fields
+        if (onFormChange) {
+          const changes = {};
+          sectionQuestions.forEach(q => {
+            if (q.IDQuestion) changes[q.IDQuestion] = undefined;
+          });
+          onFormChange(changes);
+        }
+      }
+    }
     
     if (onSectionStatusChange) {
       onSectionStatusChange(newStatuses);
     }
-  }, [sectionStatuses, onSectionStatusChange]);
+  }, [sectionStatuses, onSectionStatusChange, questions, localFormData, onFormChange]);
 
   const renderField = useCallback((question) => {
     const questionId = question.IDQuestion;
@@ -437,6 +483,9 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
                         }}
                         title="Marcar como no aplicable"
                         aria-label="Marcar como no aplicable"
+                        disabled={section.id === 'datos-generales'} // Deshabilitar para "datos-generales"
+                        style={section.id === 'datos-generales' ? 
+                          {opacity: 0.5, cursor: 'not-allowed'} : {}}
                       >
                         No
                       </button>
@@ -456,7 +505,7 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
         <form onSubmit={handleSubmit} className="form-with-sections">
           {autocompletados.length > 0 && (
             <div className="autocompletados-resumen">
-              <span>✓ {autocompletados.length} campos han sido completados automáticamente</span>
+              <span> {autocompletados.length} campos han sido completados automáticamente</span>
             </div>
           )}
 
