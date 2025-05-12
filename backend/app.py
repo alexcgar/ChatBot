@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import requests
 import logging
+from datetime import datetime, timedelta, timezone
+from cryptography.hazmat.primitives.serialization.pkcs12 import load_key_and_certificates
 
 # Cargar variables de entorno
 load_dotenv()
@@ -50,6 +52,8 @@ def generate_question():
                     "claras y directas para obtener información concreta del usuario. "
                     "No des explicaciones ni formules preguntas largas o complejas. "
                     "Limítate a pedir directamente el dato específico indicado por el usuario."
+                    "No respondas cosas como no mencionado o no disponible. "
+                    "Solo rellena el campo si puedes deducirlo con alta confianza a partir del texto. "
                 ),
             },
             {
@@ -122,6 +126,8 @@ def extract_project_data():
                 f"{fields_prompt_list}\n\n"
                 "Devuelve SOLO los campos que puedas extraer con certeza absoluta del mensaje. "
                 "Si no hay información clara para un campo, omítelo completamente."
+                "Solo rellena el campo si puedes deducirlo con alta confianza a partir del texto. "
+
             )
         else:
             system_content = (
@@ -133,6 +139,10 @@ def extract_project_data():
                 "Rellena solo los campos que puedas deducir con alta confianza a partir del texto. "
                 "Si algún campo no está presente o no puedes deducirlo con certeza, omítelo completamente. "
                 "No inventes datos. No añadas explicaciones o campos adicionales."
+                "IMPORTANTE: No generes valores como 'No mencionado', 'No disponible', 'No especificado', etc. "
+                "Si no hay información clara para un campo, omite ese campo completamente del JSON. "
+                "Debe interpretarse que la ausencia de un campo significa que no hay datos disponibles, "
+                "en lugar de rellenarlo con valores genéricos de 'No mencionado'."
             )
 
         try:
@@ -175,18 +185,37 @@ def extract_project_data():
                 # Parsear el JSON
                 extracted_json = json.loads(extracted_data)
                 
-                # NUEVO: Filtrar valores no deseados
-                unwanted_values = ["no especificado", "no disponible", "no indicado", 
-                                   "desconocido", "sin especificar", "n/a", "na", "no aplica"]
+                # NUEVO: Filtrar valores no deseados con una lista más completa
+                unwanted_values = [
+                    # Valores negativos o indeterminados
+                    "no mencionado", "no especificado", "no disponible", "no indicado", 
+                    "desconocido", "sin especificar", "n/a", "na", "no aplica",
+                    "-- selecciona --", "seleccione", "selecciona", 
+                    "no se especifica", "por determinar", "por definir",
+                    
+                    # Valores ambiguos o comúnmente incorrectos
+                    "false", "true", "none", "null", "undefined",
+                    "dato no proporcionado", "información no disponible",
+                    "no hay datos", "pendiente", "a confirmar",
+                    
+                    # Variaciones con mayúsculas
+                    "NO MENCIONADO", "NO ESPECIFICADO", "NO DISPONIBLE"
+                ]
                 
                 filtered_json = {}
                 for field, value in extracted_json.items():
                     if isinstance(value, str):
                         # Normalizar: minúsculas, sin puntuación
                         normalized = value.lower().strip().strip('.').strip(',')
-                        if normalized not in unwanted_values and normalized != "":
+                        
+                        # Comprobar contra lista de valores no deseados
+                        if (normalized not in [u.lower() for u in unwanted_values] and 
+                            normalized != "" and 
+                            not any(u.lower() in normalized for u in ["no mencionado", "no especificado"])):
                             filtered_json[field] = value
-                    elif value is not None:
+                    elif value is not None and value != False:
+                        # Solo incluir valores booleanos si son True 
+                        # (False a menudo es un valor por defecto)
                         filtered_json[field] = value
                 
                 # Registrar solo los campos con valores válidos
@@ -384,20 +413,64 @@ def serve_frontend(path):
     else:
         return send_from_directory(app.static_folder, "index.html")
 
-
 if __name__ == "__main__":
-    # Verificar si existen los archivos del frontend
-    if not os.path.exists(app.static_folder):
-        print(f"\n⚠️ ADVERTENCIA: No se encontró la carpeta static en {app.static_folder}")
-        print("Por favor, crea una carpeta 'static' en la raíz del backend y copia los archivos del frontend build allí.\n")
-    else:
-        index_path = os.path.join(app.static_folder, 'index.html')
-        if not os.path.exists(index_path):
-            print(f"\n⚠️ ADVERTENCIA: No se encontró el archivo index.html en {app.static_folder}")
-            print("Por favor, asegúrate de que el build del frontend se ha copiado correctamente a la carpeta static.\n")
-        else:
-            print(f"\n✅ Frontend detectado correctamente en {app.static_folder}")
-    
-    # Iniciar servidor
-    print("\n🚀 Iniciando servidor en http://localhost:5001\n")
-    app.run(host="0.0.0.0", port=5002, debug=True)
+    import ssl
+    import os
+    import tempfile
+    from cryptography.hazmat.primitives.serialization.pkcs12 import load_key_and_certificates
+    from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption
+
+    # Ajusta esta ruta a donde esté tu .pfx en Linux
+    pfx_path = r"C:\Users\acaparros\Desktop\ChatBot\backend\novagric-2026.pfx"
+    pfx_password = "2j70m86a9"
+
+    def load_pfx_to_temp(pfx_path, pfx_password):
+        # 1. Leer bytes del PFX
+        with open(pfx_path, "rb") as f:
+            pfx_data = f.read()
+
+        # 2. Extraer clave, certificado y CA intermedias
+        private_key, cert, additional_certs = load_key_and_certificates(
+            pfx_data,
+            pfx_password.encode("utf-8"),
+            None
+        )
+
+        # 3. Volcar todo en un único PEM temporal
+        pem_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pem")
+        with open(pem_file.name, "wb") as out:
+            # Clave privada en PKCS8
+            out.write(private_key.private_bytes(
+                encoding=Encoding.PEM,
+                format=PrivateFormat.PKCS8,
+                encryption_algorithm=NoEncryption()
+            ))
+            # Certificado principal
+            out.write(cert.public_bytes(Encoding.PEM))
+            # Cualquier CA intermedia
+            if additional_certs:
+                for ca in additional_certs:
+                    out.write(ca.public_bytes(Encoding.PEM))
+
+        return pem_file.name
+
+    try:
+        # Convertimos el PFX → un único PEM que contiene clave+certificados
+        pem_path = load_pfx_to_temp(pfx_path, pfx_password)
+
+        # Creamos el contexto SSL y cargamos el PEM como certfile y keyfile
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.load_cert_chain(certfile=pem_path, keyfile=pem_path)
+
+        print("🚀 Servidor seguro en https://0.0.0.0:5002 usando tu .pfx")
+        app.run(host="0.0.0.0", port=5002, debug=True, ssl_context=context)
+
+    except Exception as e:
+        print(f"❌ Error al cargar PFX: {e}")
+        print("🟡 Iniciando sin SSL…")
+        app.run(host="0.0.0.0", port=5002, debug=True)
+
+    finally:
+        # Limpiar el archivo PEM temporal
+        if 'pem_path' in locals() and os.path.exists(pem_path):
+            os.unlink(pem_path)

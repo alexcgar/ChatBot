@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaRobot, FaPaperPlane, FaTimes, FaMicrophone, FaStop } from 'react-icons/fa';
+import { FaRobot, FaPaperPlane, FaTimes, FaMicrophone, FaStop, FaAcquisitionsIncorporated, FaLeaf, FaCanadianMapleLeaf } from 'react-icons/fa';
 import './ChatBot.css';
 import { LOCAL_API_URL } from '../../services/api';
+import { formSections, findQuestionSection, findNextQuestion } from '../FormularioManual/sectionConfig';// Header del chat - make sure header is always visible
 
-// Header del chat - make sure header is always visible
 const ChatHeader = ({ onClose }) => (
   <div className="chat-header">
     <div className="chat-header-title">
-      <FaRobot style={{ fontSize: '18px', marginRight: '8px' }} /> 
+      <FaCanadianMapleLeaf style={{ fontSize: '19px', marginRight: '8px' }} /> 
       <span>Asistente Virtual</span>
     </div>
     <button 
@@ -208,8 +208,30 @@ const OptionsDisplay = ({ options, onSelect }) => {
 const isFieldEmpty = (data, fieldId) => {
   if (!data || !fieldId) return true;
   if (typeof data !== 'object') return true;
+  
   const value = data[fieldId];
-  return value === undefined || value === null || value === '';
+  if (value === undefined || value === null || value === '') return true;
+  
+  // Verificar valores por defecto que deberían considerarse como vacíos
+  if (typeof value === 'string') {
+    const lowerValue = value.toLowerCase().trim();
+    const defaultValues = [
+      'no se especifica', 
+      '-- selecciona --',
+      'no especificado',
+      'no disponible',
+      'no indicado',
+      'desconocido',
+      'sin especificar',
+      'n/a',
+      'na',
+      'no aplica'
+    ];
+    
+    if (defaultValues.includes(lowerValue)) return true;
+  }
+  
+  return false;
 };
 
 // Componente completo con correcciones
@@ -227,6 +249,65 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
   const chatMessagesAreaRef = useRef(null);
   const typingTimerRef = useRef(null);
   const [inputValue, setInputValue] = useState(''); // Añadir este estado
+
+  // CORREGIDO: Mover estas funciones dentro del componente
+  const getPendingQuestionsBySectionId = React.useCallback((sectionId) => {
+    // Verificar que tengamos un ID de sección válido
+    if (!sectionId || typeof sectionId !== 'string') {
+      return { section: null, pendingQuestions: [] };
+    }
+    
+    // Buscar la sección por ID
+    const section = formSections.find(s => s.id === sectionId);
+    if (!section) {
+      return { section: null, pendingQuestions: [] };
+    }
+    
+    // Filtrar preguntas que pertenecen a esta sección
+    const sectionQuestions = questions.filter(q => {
+      // Verificar que la pregunta tenga un orden
+      if (!q || typeof q.Orden !== 'number') return false;
+      
+      // Verificar si el orden está dentro de alguno de los rangos de la sección
+      return section.orderRanges.some(range => 
+        q.Orden >= range.min && q.Orden <= range.max
+      );
+    });
+    
+    // Filtrar preguntas pendientes (no completadas)
+    const pendingQuestions = sectionQuestions.filter(q => 
+      q && q.IDQuestion && isFieldEmpty(safeFormData, q.IDQuestion)
+    );
+    
+    return { 
+      section, 
+      pendingQuestions,
+      totalQuestions: sectionQuestions.length,
+      completedQuestions: sectionQuestions.length - pendingQuestions.length
+    };
+  }, [questions, safeFormData]);
+
+  const getFormCompletionSummary = React.useCallback(() => {
+    const sectionSummaries = formSections.map(section => {
+      const { pendingQuestions, totalQuestions } = getPendingQuestionsBySectionId(section.id);
+      const completedCount = totalQuestions - pendingQuestions.length;
+      const percentComplete = totalQuestions > 0 ? 
+        Math.round((completedCount / totalQuestions) * 100) : 0;
+      
+      return {
+        id: section.id,
+        title: section.title,
+        percentComplete,
+        pendingCount: pendingQuestions.length,
+        totalCount: totalQuestions
+      };
+    }).filter(summary => summary.totalCount > 0); // Solo secciones con preguntas
+    
+    // Ordenar por porcentaje de completitud (menos completas primero)
+    sectionSummaries.sort((a, b) => a.percentComplete - b.percentComplete);
+    
+    return sectionSummaries;
+  }, [getPendingQuestionsBySectionId]);
 
   // Función para mostrar el indicador de escritura con duración mínima
   const setTypingWithMinDuration = React.useCallback((isTypingValue) => {
@@ -606,7 +687,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
     }
   }, [autoCompletedFields, extractDataInBatches, onUpdateFormData, questions, saveCachedExtraction, showCompletedFieldsSummary]); 
 
-  // Modificar la función handleSend para añadir la rama 'else' faltante
+  // Modificar la función handleSend para añadir la lógica de ayuda con secciones
 
   const handleSend = React.useCallback(async (answer) => {
     setChatHistory(prev => [...prev, { sender: 'user', text: answer }]);
@@ -615,84 +696,226 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
     setTypingWithMinDuration(true);
     
     try {
-      // Comprobar si tenemos datos en caché
-      const cachedResult = getCachedExtraction(answer);
-      if (cachedResult && cachedResult.data && Object.keys(cachedResult.data).length > 0) {
-        // Código de caché sin cambios...
-        return;
+      const lowerAnswer = answer.toLowerCase();
+      
+      // PASO 1: Determinar si es una solicitud de ayuda
+      const isHelpRequest = lowerAnswer.match(/^(?:qu[eé] (?:me )?falta|completar|ayuda|ayúdame|estado)/i);
+      
+      if (isHelpRequest) {
+        console.log("Detectada solicitud de ayuda");
+        
+        // PASO 2: Buscar si menciona una sección específica
+        let matchingSection = null;
+        
+        // Comprobar cada sección por su nombre
+        for (const section of formSections) {
+          const sectionTitle = section.title.toLowerCase();
+          const sectionDesc = section.description.toLowerCase();
+          
+          if (lowerAnswer.includes(sectionTitle) || lowerAnswer.includes(sectionDesc)) {
+            console.log(`Sección encontrada en mensaje: ${section.title}`);
+            matchingSection = section;
+            break;
+          }
+        }
+        
+        if (matchingSection) {
+          // Mostrar información de ayuda para la sección específica
+          const { section, pendingQuestions, totalQuestions } = 
+            getPendingQuestionsBySectionId(matchingSection.id);
+          
+          if (pendingQuestions.length === 0) {
+            // La sección está completa
+            setChatHistory(prev => [...prev, {
+              sender: 'bot',
+              text: `¡Buenas noticias! La sección "${section.title}" ya está completa. Has rellenado los ${totalQuestions} campos requeridos.`,
+              questionId: 'section-complete'
+            }]);
+          } else {
+            // Hay preguntas pendientes
+            const pendingExamples = pendingQuestions.slice(0, 3).map(q => q.Description);
+            const additionalCount = pendingQuestions.length > 3 ? pendingQuestions.length - 3 : 0;
+            const additionalText = additionalCount > 0 ? ` y ${additionalCount} más` : '';
+            
+            setChatHistory(prev => [...prev, {
+              sender: 'bot',
+              text: `Para completar la sección "${section.title}" te faltan ${pendingQuestions.length} campos por rellenar de un total de ${totalQuestions}. Necesito información sobre: ${pendingExamples.join(', ')}${additionalText}. ¿Puedes proporcionarme estos datos?`,
+              questionId: 'section-pending'
+            }]);
+            
+            // Sugerir la siguiente pregunta específica
+            const nextSpecificQuestion = findNextQuestion(questions, safeFormData, section.id);
+            
+            if (nextSpecificQuestion) {
+              setTimeout(() => {
+                setChatHistory(prev => [...prev, {
+                  sender: 'bot',
+                  text: `Te sugiero empezar por responder: "${nextSpecificQuestion.Description}". ¿Puedes proporcionarme esta información?`,
+                  questionId: 'next-specific-question'
+                }]);
+              }, 1500);
+            }
+          }
+          
+          // IMPORTANTE: Terminar aquí, no intentar extraer datos
+          setTypingWithMinDuration(false);
+          return;
+        } else {
+          // Es una solicitud de ayuda general
+          const formSummary = getFormCompletionSummary();
+
+          // Encontrar secciones menos completas
+          const incompleteSections = formSummary.filter(s => s.percentComplete < 100);
+
+          if (incompleteSections.length === 0) {
+            // Todo está completo
+            setChatHistory(prev => [...prev, {
+              sender: 'bot',
+              text: '¡Felicidades! Has completado todo el formulario. Puedes revisarlo y enviarlo cuando estés listo.',
+              questionId: 'form-complete'
+            }]);
+          } else {
+            // Secciones que necesitan atención, mostrar las 3 menos completas
+            const prioritySections = incompleteSections.slice(0, 3);
+            
+            const sectionsList = prioritySections.map(s => 
+              `"${s.title}" (${s.percentComplete}% completa, faltan ${s.pendingCount} campos)`
+            ).join(', ');
+            
+            const additionalSections = incompleteSections.length > 3 ? 
+              ` y ${incompleteSections.length - 3} secciones más` : '';
+            
+            setChatHistory(prev => [...prev, {
+              sender: 'bot',
+              text: `Aún necesitas completar información en: ${sectionsList}${additionalSections}. ¿Quieres que te ayude con alguna sección específica?`,
+              questionId: 'form-incomplete'
+            }]);
+            
+            // Sugerir la próxima pregunta más importante para completar
+            const nextImportantQuestion = findNextQuestion(questions, safeFormData);
+
+            if (nextImportantQuestion) {
+              // Sección a la que pertenece esta pregunta
+              const questionSection = findQuestionSection(nextImportantQuestion.IDQuestion, questions);
+              
+              setTimeout(() => {
+                setChatHistory(prev => [...prev, {
+                  sender: 'bot',
+                  text: `Te sugiero enfocarte ahora en responder: "${nextImportantQuestion.Description}"${
+                    questionSection ? ` en la sección "${questionSection.title}"` : ''
+                  }. ¿Puedes proporcionarme esta información?`,
+                  questionId: 'next-important-question'
+                }]);
+              }, 1500);
+            }
+          }
+          
+          // IMPORTANTE: Terminar aquí, no intentar extraer datos
+          setTypingWithMinDuration(false);
+          return;
+        }
       }
       
-      // Para el flujo normal con pocos campos
-      const emptyFields = questions.filter(q => 
-        q && q.IDQuestion && isFieldEmpty(safeFormData, q.IDQuestion)
-      );
-      
-      // IMPORTANTE: Añadir este console.log para diagnóstico
-      console.log(`Analizando mensaje. Campos vacíos: ${emptyFields.length}`);
-      
-      if (emptyFields.length <= 5) {
-        const result = await extractDataInBatches(answer, emptyFields);
+      // SOLO llegamos aquí si NO es una solicitud de ayuda
+      console.log("No es solicitud de ayuda, procediendo con extracción normal");
+
+      // Comprobar si tenemos datos en caché
+      const cachedResult = getCachedExtraction(answer);
+
+      if (cachedResult && cachedResult.data && Object.keys(cachedResult.data).length > 0) {
+        // Usar datos en caché
+        console.log("Usando datos de caché:", cachedResult);
         
-        // Usar el resultado obtenido
-        if (result && result.data && Object.keys(result.data).length > 0) {
-          // Actualizar el formulario con los datos extraídos
-          onUpdateFormData(result.data, result.autoCompletedFields || []);
-          
-          // Actualizar campos autocompletados
-          setAutoCompletedFields(prev => {
-            const newFields = [...prev];
-            (result.autoCompletedFields || []).forEach(field => {
-              if (!newFields.includes(field)) newFields.push(field);
-            });
-            return newFields;
-          });
-          
-          // Mostrar mensaje de éxito
-          setChatHistory(prev => [...prev, {
-            sender: 'bot',
-            text: showCompletedFieldsSummary(result.data),
-            questionId: 'extraction-success'
-          }]);
-        } else {
-          // No se extrajo información
-          setChatHistory(prev => [...prev, {
-            sender: 'bot',
-            text: 'No he podido extraer información relevante de tu mensaje. ¿Puedes proporcionar más detalles sobre tu proyecto?',
-            questionId: 'no-extraction'
-          }]);
-        }
+        // Actualizar formulario con datos en caché
+        onUpdateFormData(cachedResult.data, cachedResult.autoCompletedFields || []);
+        
+        // Mostrar mensaje de éxito con campos completados
+        setChatHistory(prev => [...prev, {
+          sender: 'bot',
+          text: showCompletedFieldsSummary(cachedResult.data),
+          questionId: 'extraction-success'
+        }]);
       } else {
-        // MODIFICADO: No añadir mensaje de texto, solo activar el proceso en segundo plano
-        // que mostrará automáticamente la barra de progreso
+        // No tenemos caché, procesar normalmente
+        const pendingQuestions = questions.filter(q => 
+          q && q.IDQuestion && isFieldEmpty(safeFormData, q.IDQuestion)
+        );
         
-        // Dividir los campos en lotes para procesamiento en segundo plano
-        const batchSize = 8; // Tamaño de lote óptimo
-        const batches = [];
-        
-        for (let i = 0; i < emptyFields.length; i += batchSize) {
-          batches.push(emptyFields.slice(i, i + batchSize));
+        if (pendingQuestions.length === 0) {
+          setChatHistory(prev => [...prev, {
+            sender: 'bot',
+            text: "¡Genial! Ya has completado todos los campos del formulario.",
+            questionId: 'all-complete'
+          }]);
+          setTypingWithMinDuration(false);
+          return;
         }
         
-        // Llamar a la función processBatchesInBackground
-        processBatchesInBackground(answer, batches, safeFormData);
+        // Dividir las preguntas pendientes en lotes más pequeños
+        const batchSize = 15;
+        const questionBatches = [];
+        
+        for (let i = 0; i < pendingQuestions.length; i += batchSize) {
+          questionBatches.push(pendingQuestions.slice(i, i + batchSize));
+        }
+        
+        // Mostrar mensaje de confirmación de análisis
+        setChatHistory(prev => [...prev, {
+          sender: 'bot',
+          text: "Estoy analizando la información que me has proporcionado. Este proceso puede tomar un momento.",
+          questionId: 'extraction-start'
+        }]);
+        
+        // Procesar el primer lote inmediatamente para mostrar resultados rápidos
+        if (questionBatches.length > 0) {
+          try {
+            const firstBatchResult = await extractDataInBatches(answer, questionBatches[0]);
+            
+            if (firstBatchResult && firstBatchResult.data && Object.keys(firstBatchResult.data).length > 0) {
+              // Actualizar formulario con datos extraídos
+              onUpdateFormData(firstBatchResult.data, firstBatchResult.autoCompletedFields || []);
+              
+              // Mostrar mensaje de éxito
+              setChatHistory(prev => [...prev, {
+                sender: 'bot',
+                text: showCompletedFieldsSummary(firstBatchResult.data),
+                questionId: 'extraction-success'
+              }]);
+            }
+            
+            // Procesar el resto de lotes en segundo plano si hay más de uno
+            if (questionBatches.length > 1) {
+              // Mostrar mensaje informando del procesamiento en segundo plano
+              setChatHistory(prev => [...prev, {
+                sender: 'bot',
+                text: "Continuaré analizando tu proyecto en segundo plano para extraer más información. Puedes seguir interactuando conmigo mientras tanto.",
+                questionId: 'background-processing-start'
+              }]);
+              
+              // Ejecutar el procesamiento en segundo plano
+              processBatchesInBackground(
+                answer, 
+                questionBatches.slice(1), 
+                firstBatchResult ? firstBatchResult.data : {}
+              );
+            }
+            
+          } catch (error) {
+            console.error("Error en la extracción inicial:", error);
+            setChatHistory(prev => [...prev, {
+              sender: 'bot',
+              text: "Lo siento, ha ocurrido un error al procesar tu información. Por favor, intenta de nuevo o proporciona los datos directamente en el formulario.",
+              questionId: 'extraction-error'
+            }]);
+          }
+        }
       }
     } catch (error) {
       console.error("Error en la operación:", error);
     } finally {
       setTypingWithMinDuration(false);
     }
-  }, [
-    questions, 
-    safeFormData, 
-    extractDataInBatches,
-    processBatchesInBackground, // Añadir esta dependencia
-    setTypingWithMinDuration, 
-    getCachedExtraction, 
-    setChatHistory, 
-    showCompletedFieldsSummary, 
-    setAutoCompletedFields, 
-    onUpdateFormData
-  ]);
+  }, [setTypingWithMinDuration, getPendingQuestionsBySectionId, questions, safeFormData, getFormCompletionSummary]);
 
   // Manejar cambio de entrada - mover fuera del hook
   const handleChange = (e) => {

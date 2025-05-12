@@ -134,11 +134,56 @@ export const formSections = [
   }
 ];
 
-// Función auxiliar para encontrar la sección de una pregunta
-export const findQuestionSection = (question) => {
-  if (!question || typeof question.Orden !== 'number') return null;
+// Añade estas funciones al archivo sectionConfig.js si no existen
 
-  return formSections.find(section =>
-    section.orderRanges.some(range => question.Orden >= range.min && question.Orden <= range.max)
-  );
+export const findQuestionSection = (questionId, questions) => {
+  // Primero buscamos la pregunta por su ID
+  const question = questions.find(q => q.IDQuestion === questionId);
+  
+  // Si no encontramos la pregunta o no tiene Orden, retornamos null
+  if (!question || typeof question.Orden !== 'number') return null;
+  
+  // Buscamos la sección a la que pertenece según su Orden
+  return formSections.find(section => 
+    section.orderRanges.some(range => 
+      question.Orden >= range.min && question.Orden <= range.max
+    )
+  ) || null;
+};
+
+export const findNextQuestion = (questions, formData, sectionId = null) => {
+  // Filtrar preguntas por sección si se proporciona un sectionId
+  const filteredQuestions = sectionId 
+    ? questions.filter(q => {
+        if (!q || typeof q.Orden !== 'number') return false;
+        
+        const section = formSections.find(s => s.id === sectionId);
+        if (!section) return false;
+        
+        return section.orderRanges.some(range => 
+          q.Orden >= range.min && q.Orden <= range.max
+        );
+      })
+    : [...questions];
+    
+  // Ordenar las preguntas por su número de orden
+  const sortedQuestions = filteredQuestions.sort((a, b) => {
+    // Primero por orden de aparición
+    if (a.Orden && b.Orden) {
+      return a.Orden - b.Orden;
+    }
+    return 0;
+  });
+  
+  // Buscar la primera pregunta vacía
+  const nextQuestion = sortedQuestions.find(q => {
+    // Verificar que la pregunta sea válida y tenga un ID
+    if (!q || !q.IDQuestion) return false;
+    
+    // Verificar si el campo está vacío
+    const value = formData[q.IDQuestion];
+    return value === undefined || value === null || value === '';
+  });
+  
+  return nextQuestion || null;
 };

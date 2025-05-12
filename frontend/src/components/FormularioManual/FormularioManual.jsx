@@ -61,6 +61,26 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
     if (value === undefined || value === null) return false;
     if (value === '') return false;
     if (Array.isArray(value) && value.length === 0) return false;
+    
+    // Verificar valores por defecto que no deberían considerarse como completados
+    if (typeof value === 'string') {
+      const lowerValue = value.toLowerCase().trim();
+      const defaultValues = [
+        'no se especifica', 
+        '-- selecciona --',
+        'no especificado',
+        'no disponible',
+        'no indicado',
+        'desconocido',
+        'sin especificar',
+        'n/a',
+        'na',
+        'no aplica'
+      ];
+      
+      if (defaultValues.includes(lowerValue)) return false;
+    }
+    
     return true;
   }, []);
 
@@ -168,32 +188,10 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
     const questionId = question.IDQuestion;
     const value = localFormData[questionId] ?? '';
     
-    if (question.Type === 3) {
-      console.log(`Rendering select field ${questionId}:`, {
-        selectedValue: value,
-        availableOptions: answers[questionId]?.map(a => ({desc: a.Description, value: a.CodAnswer})) || []
-      });
-    }
-
-    if (question.Type === 3) {
-      console.log(`Renderizando select ${questionId}:`, {
-        valorActual: value,
-        tipoValor: typeof value,
-        opcionesDisponibles: answers[questionId]?.map(a => ({
-          desc: a.Description, 
-          valor: a.CodAnswer,
-          tipoValor: typeof a.CodAnswer
-        })) || []
-      });
-      
-      if (answers[questionId]) {
-        const coincide = answers[questionId].some(
-          a => String(a.CodAnswer) === String(value)
-        );
-        console.log(`¿El valor ${value} coincide con alguna opción? ${coincide}`);
-      }
-    }
-
+    // Determinar si el campo está completo o tiene solo valores por defecto
+    const hasRealValue = isFieldCompleted(value);
+    
+    // Código para los campos tipo select
     if (question.Type === 3 && answers[questionId]) {
       const stringValue = value.toString();
       
@@ -201,7 +199,7 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
         <select
           id={`question-${questionId}`}
           name={`question-${questionId}`}
-          className="form-control"
+          className={`form-control ${hasRealValue ? 'completed-field' : ''}`}
           value={stringValue}
           onChange={handleInputChange}
         >
@@ -238,18 +236,19 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
         </div>
       );
     }
+    
     return (
       <input
         type="text"
         id={`question-${questionId}`}
         name={`question-${questionId}`}
-        className="form-control"
+        className={`form-control ${hasRealValue ? 'completed-field' : ''}`}
         value={value}
         onChange={handleInputChange}
         placeholder={question.Comment || ''}
       />
     );
-  }, [localFormData, answers, handleInputChange]);
+  }, [localFormData, answers, handleInputChange, isFieldCompleted]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
