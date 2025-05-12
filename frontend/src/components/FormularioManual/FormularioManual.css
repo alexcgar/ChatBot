@@ -48,7 +48,7 @@
 
 .form-sidebar li {
   position: relative;
-  padding: 12px 16px;
+  padding: 10px 12px; /* Reducir un poco el padding para acomodar los botones */
   display: flex;
   align-items: center;
   cursor: pointer;
@@ -91,7 +91,7 @@
 /* Mejorar el diseño de los elementos del sidebar */
 .sidebar-item {
   position: relative;
-  padding: 12px 16px;
+  padding: 10px 12px; /* Reducir un poco el padding para acomodar los botones */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -103,7 +103,10 @@
 .sidebar-item-content {
   display: flex;
   align-items: center;
-  flex: 1;
+  flex: 0 1 auto; /* Permitir que se encoja si es necesario */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar-icon-wrapper {
@@ -124,13 +127,20 @@
   text-overflow: ellipsis;
 }
 
+.sidebar-item-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
 /* Añadir un contador de preguntas */
 .questions-count {
   background-color: rgba(0,0,0,0.06);
   color: #6b7280;
   font-size: 12px;
   font-weight: 600;
-  min-width: 22px;
+  min-width: 24px; /* Garantizar espacio suficiente */
   height: 22px;
   border-radius: 11px;
   display: flex;
@@ -152,6 +162,71 @@
 .sidebar-item.active {
   background-color: rgba(74, 115, 219, 0.10);
   border-left-color: #4a73db;
+}
+
+/* Estilos para los botones de Sí/No en el sidebar */
+.sidebar-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+}
+
+.sidebar-btn {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: white;
+  color: var(--gray-700);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  min-width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-btn.active {
+  border-color: transparent;
+  color: white;
+}
+
+.sidebar-btn-yes.active {
+  background-color: #48BB78;
+}
+
+.sidebar-btn-no.active {
+  background-color: #F56565;
+}
+
+/* Tooltip para indicación visual */
+.section-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.status-pending {
+  background-color: var(--gray-400);
+}
+
+.status-completed {
+  background-color: #48BB78;
+}
+
+.status-skipped {
+  background-color: #F56565;
 }
 
 /* Contenido principal */
@@ -524,6 +599,15 @@ select {
     right: 20px;
     padding: 10px 15px;
   }
+  
+  .sidebar-item-text {
+    max-width: 80px;
+  }
+  
+  .sidebar-btn {
+    padding: 2px 6px;
+    min-width: 24px;
+  }
 }
 
 /* Campos de formulario más modernos */
@@ -673,6 +757,10 @@ textarea {
   
   .form-sidebar {
     width: 250px;
+  }
+  
+  .sidebar-item-text {
+    max-width: 100px;
   }
 }
 

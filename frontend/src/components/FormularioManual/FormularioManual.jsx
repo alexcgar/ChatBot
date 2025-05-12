@@ -16,6 +16,7 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
   const [isSuccess, setIsSuccess] = useState(false);
   const [selectedSectionId, setSelectedSectionId] = useState(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [sectionStatuses, setSectionStatuses] = useState({});
 
   const scrollToTop = () => {
     window.scrollTo({
@@ -183,6 +184,13 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
       return newData;
     });
   }, [onFormChange]);
+
+  const handleSectionStatusChange = useCallback((sectionId, status) => {
+    setSectionStatuses(prev => ({
+      ...prev,
+      [sectionId]: status
+    }));
+  }, []);
 
   const renderField = useCallback((question) => {
     const questionId = question.IDQuestion;
@@ -369,6 +377,7 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
             
             // Agregar separadores entre grupos funcionales de secciones
             const shouldShowDivider = index > 0 && index % 3 === 0;
+            const sectionStatus = sectionStatuses[section.id];
             
             return (
               <React.Fragment key={section.id}>
@@ -384,11 +393,47 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
                         <Icon className="sidebar-icon" />
                       </div>
                     }
-                    <span className="sidebar-item-text">{section.title}</span>
+                    <span className="sidebar-item-text">
+                      {sectionStatus && (
+                        <span 
+                          className={`section-status-dot ${
+                            sectionStatus === 'yes' ? 'status-completed' : 
+                            sectionStatus === 'no' ? 'status-skipped' : 'status-pending'
+                          }`}
+                        ></span>
+                      )}
+                      {section.title}
+                    </span>
                   </div>
-                  {sectionQuestions.length > 0 && (
-                    <span className="questions-count">{sectionQuestions.length}</span>
-                  )}
+                  <div className="sidebar-item-right">
+                    <div className="sidebar-item-actions">
+                      <button
+                        className={`sidebar-btn sidebar-btn-yes ${sectionStatus === 'yes' ? 'active' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSectionStatusChange(section.id, sectionStatus === 'yes' ? null : 'yes');
+                        }}
+                        title="Marcar como completado"
+                        aria-label="Marcar como completado"
+                      >
+                        Sí
+                      </button>
+                      <button
+                        className={`sidebar-btn sidebar-btn-no ${sectionStatus === 'no' ? 'active' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSectionStatusChange(section.id, sectionStatus === 'no' ? null : 'no');
+                        }}
+                        title="Marcar como no aplicable"
+                        aria-label="Marcar como no aplicable"
+                      >
+                        No
+                      </button>
+                    </div>
+                    {sectionQuestions.length > 0 && (
+                      <span className="questions-count">{sectionQuestions.length}</span>
+                    )}
+                  </div>
                 </li>
               </React.Fragment>
             );
