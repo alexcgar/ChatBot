@@ -29,6 +29,7 @@ function App() {
   const [error, setError] = useState(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [autoCompletedFields, setAutoCompletedFields] = useState([]);
+  const [sectionStatuses, setSectionStatuses] = useState({});
 
   useEffect(() => {
     const loadQuestions = async () => {
@@ -81,6 +82,7 @@ function App() {
         questions={questions}
         onFormChange={(newData) => setFormData({...formData, ...newData})}
         autocompletados={autoCompletedFields}
+        onSectionStatusChange={setSectionStatuses}
       />
       
       {/* ChatBot siempre renderizado, pero con visibilidad controlada */}
@@ -115,6 +117,7 @@ function App() {
           formData={formData}
           onClose={toggleChat}
           isVisible={isChatOpen}
+          sectionStatuses={sectionStatuses}
         />
       </div>
       

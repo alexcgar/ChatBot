@@ -236,9 +236,17 @@ const isFieldEmpty = (data, fieldId) => {
 
 // Componente completo con correcciones
 
-const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isVisible }) => {
+const Chatbot = ({ 
+  questions = [], 
+  onUpdateFormData, 
+  formData = {}, 
+  onClose, 
+  isVisible,
+  sectionStatuses = {} // Añadir prop con valor por defecto
+}) => {
   // Estado necesario
   const safeFormData = React.useMemo(() => formData || {}, [formData]);
+  const safeSectionStatuses = React.useMemo(() => sectionStatuses || {}, [sectionStatuses]);
   const [autoCompletedFields, setAutoCompletedFields] = useState([]);
   const [chatHistory, setChatHistory] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -397,19 +405,35 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
 
   // Corregir dependencias
   const extractDataInBatches = React.useCallback(async (description, allQuestions) => {
-    // No cambiamos isTyping aquí para evitar parpadeos
     try {
       // Asegurarse que allQuestions sea un array
       const safeQuestions = Array.isArray(allQuestions) ? allQuestions : [];
       
-      // Solo proceder si hay preguntas para procesar
       if (safeQuestions.length === 0) {
         console.warn("No hay preguntas para procesar");
         return { data: {}, autoCompletedFields: [] };
       }
       
-      // Mejorar el prompt añadiendo la descripción completa de cada pregunta
-      const questionPrompts = safeQuestions
+      // Filtrar preguntas que pertenecen a secciones marcadas como "no"
+      const filteredQuestions = safeQuestions.filter(question => {
+        if (!question || !question.Orden) return false;
+        
+        // Encontrar la sección a la que pertenece esta pregunta
+        const section = formSections.find(section => 
+          section.orderRanges.some(range => 
+            question.Orden >= range.min && question.Orden <= range.max
+          )
+        );
+        
+        if (!section) return true; // Si no encontramos sección, incluir la pregunta
+        
+        // Solo incluir si la sección NO está marcada como "no"
+        return safeSectionStatuses[section.id] !== 'no';
+      });
+      
+      console.log(`Enviando ${filteredQuestions.length} preguntas al backend (descartadas ${safeQuestions.length - filteredQuestions.length} de secciones no aplicables)`);
+      
+      const questionPrompts = filteredQuestions
         .filter(q => q && q.Description)
         .map(q => {
           let prompt = q.Description;
@@ -510,7 +534,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
       console.error("Error en la extracción por lotes:", error);
       return { data: {}, autoCompletedFields: [] };
     }
-  }, []); // No necesita 'questions' como dependencia ya que recibe allQuestions como parámetro
+  }, [safeSectionStatuses]); // Añadir safeSectionStatuses como dependencia
 
   // Función para mostrar resumen de campos completados
   const showCompletedFieldsSummary = React.useCallback((completedData) => {
@@ -915,7 +939,7 @@ const Chatbot = ({ questions = [], onUpdateFormData, formData = {}, onClose, isV
     } finally {
       setTypingWithMinDuration(false);
     }
-  }, [setTypingWithMinDuration, getPendingQuestionsBySectionId, questions, safeFormData, getFormCompletionSummary]);
+  }, [setTypingWithMinDuration, getCachedExtraction, getPendingQuestionsBySectionId, questions, safeFormData, getFormCompletionSummary, onUpdateFormData, showCompletedFieldsSummary, extractDataInBatches, processBatchesInBackground]);
 
   // Manejar cambio de entrada - mover fuera del hook
   const handleChange = (e) => {

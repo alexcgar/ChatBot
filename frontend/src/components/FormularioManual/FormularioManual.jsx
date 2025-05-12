@@ -7,7 +7,7 @@ import { formSections } from './sectionConfig';
 import { motion } from 'framer-motion';
 import { FaArrowUp } from 'react-icons/fa';
 
-function FormularioManual({ formData = {}, onFormChange, autocompletados = [] }) {
+function FormularioManual({ formData = {}, onFormChange, autocompletados = [], onSectionStatusChange }) {
   const [localFormData, setLocalFormData] = useState(formData);
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
@@ -16,7 +16,13 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
   const [isSuccess, setIsSuccess] = useState(false);
   const [selectedSectionId, setSelectedSectionId] = useState(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const [sectionStatuses, setSectionStatuses] = useState({});
+  const [sectionStatuses, setSectionStatuses] = useState(() => {
+    const initialStatuses = {};
+    formSections.forEach(section => {
+      initialStatuses[section.id] = 'no';
+    });
+    return initialStatuses;
+  });
 
   const scrollToTop = () => {
     window.scrollTo({
@@ -186,11 +192,16 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [] })
   }, [onFormChange]);
 
   const handleSectionStatusChange = useCallback((sectionId, status) => {
-    setSectionStatuses(prev => ({
-      ...prev,
+    const newStatuses = {
+      ...sectionStatuses,
       [sectionId]: status
-    }));
-  }, []);
+    };
+    setSectionStatuses(newStatuses);
+    
+    if (onSectionStatusChange) {
+      onSectionStatusChange(newStatuses);
+    }
+  }, [sectionStatuses, onSectionStatusChange]);
 
   const renderField = useCallback((question) => {
     const questionId = question.IDQuestion;
