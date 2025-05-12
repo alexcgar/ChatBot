@@ -58,6 +58,7 @@ const FormSection = ({
                   className="form-label"
                 >
                   {question.Description}
+                  {question.Required && <span className="required-indicator">*</span>}
                   {isAutoCompleted && <span className="auto-badge">Auto</span>}
                 </label>
                 {renderField(question)}

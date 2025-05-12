@@ -334,6 +334,18 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Check for required fields
+    const missingRequiredFields = questions
+      .filter(q => q.Required && shouldShowQuestion(q) && 
+        !isFieldCompleted(localFormData[q.IDQuestion]))
+      .map(q => q.Description);
+      
+    if (missingRequiredFields.length > 0) {
+      setError(`Por favor complete los siguientes campos obligatorios: ${missingRequiredFields.join(', ')}`);
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     try {
@@ -503,11 +515,6 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
 
       <div className="form-main-content">
         <form onSubmit={handleSubmit} className="form-with-sections">
-          {autocompletados.length > 0 && (
-            <div className="autocompletados-resumen">
-              <span> {autocompletados.length} campos han sido completados automáticamente</span>
-            </div>
-          )}
 
           <div className="form-sections-container">
             {formSections

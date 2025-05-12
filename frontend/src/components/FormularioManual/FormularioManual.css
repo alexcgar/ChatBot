@@ -802,3 +802,20 @@ textarea {
     padding: 20px 15px;
   }
 }
+
+/* Indicador de campos requeridos */
+.required-indicator {
+  color: #dc3545;
+  margin-left: 4px;
+  font-weight: bold;
+}
+
+.form-section-header {
+  position: relative;
+}
+
+.required-notice {
+  font-size: 0.85rem;
+  color: #dc3545;
+  margin-top: 5px;
+}
