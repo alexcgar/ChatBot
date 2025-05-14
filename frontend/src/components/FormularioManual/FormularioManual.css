@@ -13,7 +13,7 @@
 
 /* Barra lateral mejorada */
 .form-sidebar {
-  width: 280px; /* Mantenemos un ancho generoso */
+  width: 380px; /* Mantenemos un ancho generoso */
   min-height: 100vh;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -48,7 +48,7 @@
 
 .form-sidebar li {
   position: relative;
-  padding: 10px 12px; /* Reducir un poco el padding para acomodar los botones */
+  padding: 19px 12px; /* Reducir un poco el padding para acomodar los botones */
   display: flex;
   align-items: center;
   cursor: pointer;
@@ -71,7 +71,6 @@
 }
 
 .form-sidebar li .sidebar-icon {
-  margin-right: 12px;
   color: #6b7280;
   min-width: 20px;
   transition: all 0.2s ease;
@@ -83,15 +82,15 @@
 
 /* Estilos para los divisores entre grupos de secciones */
 .sidebar-divider {
-  height: 1px;
+  height: px;
   background: linear-gradient(to right, rgba(0,0,0,0.03), rgba(0,0,0,0.08), rgba(0,0,0,0.03));
-  margin: 8px 10px;
+  margin: 10px 10px;
 }
 
 /* Mejorar el diseño de los elementos del sidebar */
 .sidebar-item {
   position: relative;
-  padding: 10px 12px; /* Reducir un poco el padding para acomodar los botones */
+  padding: 20px 22px; /* Reducir un poco el padding para acomodar los botones */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -169,7 +168,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-left: 8px;
+  margin-left: px;
 }
 
 .sidebar-btn {
@@ -178,8 +177,8 @@
   color: var(--gray-700);
   font-size: 0.7rem;
   font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 12px;
+  padding: 5px 8px;
+  border-radius: 2px;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);

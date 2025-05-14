@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FaRobot, FaPaperPlane, FaTimes, FaMicrophone, FaStop, FaAcquisitionsIncorporated, FaLeaf, FaCanadianMapleLeaf } from 'react-icons/fa';
 import './ChatBot.css';
 import { LOCAL_API_URL } from '../../services/api';
-import { formSections} from '../FormularioManual/sectionConfig';// Header del chat - make sure header is always visible
+import { formSections } from '../FormularioManual/sectionConfig';// Header del chat - make sure header is always visible
 
 // Añadir esta función fuera del componente principal para su reutilización
 
@@ -274,6 +274,11 @@ const Chatbot = ({
   const chatMessagesAreaRef = useRef(null);
   const typingTimerRef = useRef(null);
   const [inputValue, setInputValue] = useState(''); // Añadir este estado
+  const [activeQuestion, setActiveQuestion] = useState(null);
+  const [activeSection, setActiveSection] = useState(null);
+  const [missingSectionQuestions, setMissingSectionQuestions] = useState([]);
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [isAnsweringQuestions, setIsAnsweringQuestions] = useState(false);
 
   // CORREGIDO: Mover estas funciones dentro del componente
   const getPendingQuestionsBySectionId = React.useCallback((sectionId) => {
@@ -322,6 +327,8 @@ const Chatbot = ({
     };
   }, [questions, safeFormData, safeSectionStatuses]);  // Añadir safeSectionStatuses como dependencia
 
+  // This function is kept for future use when we implement the form completion progress feature
+  // eslint-disable-next-line no-unused-vars
   const getFormCompletionSummary = React.useCallback(() => {
     const sectionSummaries = formSections.map(section => {
       const { pendingQuestions, totalQuestions } = getPendingQuestionsBySectionId(section.id);
@@ -336,7 +343,7 @@ const Chatbot = ({
         pendingCount: pendingQuestions.length,
         totalCount: totalQuestions
       };
-    }).filter(summary => summary.totalCount > 0); // Solo secciones con preguntas
+    }).filter(summary => summary.totalCount > 0);
     
     // Ordenar por porcentaje de completitud (menos completas primero)
     sectionSummaries.sort((a, b) => a.percentComplete - b.percentComplete);
@@ -726,7 +733,7 @@ const Chatbot = ({
       setExtractionProgress(100);
       setIsExtracting(false);
     }
-  }, [autoCompletedFields, extractDataInBatches, onUpdateFormData, questions, safeSectionStatuses, saveCachedExtraction, showCompletedFieldsSummary]);
+  }, [autoCompletedFields, extractDataInBatches, onUpdateFormData, questions, safeSectionStatuses, saveCachedExtraction]);
 
   // Add this function to check for missing required fields
   const getMissingRequiredFields = React.useCallback(() => {
@@ -739,7 +746,473 @@ const Chatbot = ({
     );
   }, [questions, safeSectionStatuses, safeFormData]);
 
-  // Enhance handleSend to detect submission intent and check required fields
+  // Nueva función para obtener preguntas faltantes obligatorias de una sección específica
+  const getMissingMandatoryQuestionsBySection = React.useCallback((sectionId) => {
+    // Verificar si la sección existe y está activa (no marcada como "no")
+    if (!sectionId || safeSectionStatuses[sectionId] === 'no') {
+      return [];
+    }
+
+    // Buscar sección por ID
+    const section = formSections.find(s => s.id === sectionId);
+    if (!section) {
+      return [];
+    }
+
+    // Filtrar preguntas que pertenecen a esta sección
+    const sectionQuestions = questions.filter(q => {
+      if (!q || typeof q.Orden !== 'number') return false;
+      
+      return section.orderRanges.some(range => 
+        q.Orden >= range.min && q.Orden <= range.max
+      );
+    });
+    
+    // Filtrar las preguntas obligatorias que no están completadas
+    return sectionQuestions.filter(q => 
+      q.Required && 
+      isFieldEmpty(safeFormData, q.IDQuestion)
+    );
+  }, [questions, safeSectionStatuses, safeFormData]);
+
+  // Función para identificar y manejar consultas sobre secciones específicas
+  const handleSectionQuery = React.useCallback((message) => {
+    const lowerMessage = message.toLowerCase();
+    
+    // Detectar consultas sobre preguntas faltantes en una sección
+    // Mejorar la detección de secciones considerando variaciones y palabras clave
+    let matchedSection = null;
+    
+    // Buscar coincidencia exacta o parcial con cualquier sección
+    for (const section of formSections) {
+      // Comprobar coincidencia con ID
+      if (lowerMessage.includes(section.id.toLowerCase())) {
+        matchedSection = section;
+        break;
+      }
+      
+      // Comprobar coincidencia con título
+      if (lowerMessage.includes(section.title.toLowerCase())) {
+        matchedSection = section;
+        break;
+      }
+      
+      // Comprobar coincidencia con palabras clave específicas de cada categoría
+      // Esto permite detectar frases como "pregunta sobre invernadero" o "datos del invernadero"
+      const sectionKeywords = {
+        'invernaderos': ['invernadero', 'invernader', 'greenhouse'],
+        'pantallas': ['pantalla', 'screen', 'sombra', 'sombreo'],
+        'riego': ['riego', 'irrigation', 'agua', 'irrigación'],
+        'drenajes': ['drenaje', 'drainage', 'drenado'],
+        'depositos': ['deposito', 'depósito', 'tank', 'tanque', 'chapa'],
+        'embalse': ['embalse', 'revestimiento', 'reservoir', 'balsa'],
+        'osmosis': ['osmosi', 'ósmosis', 'osmotic', 'agua tratada'],
+        'fitosanitarios': ['fitosanitario', 'phytosanitary', 'treatment', 'tratamiento'],
+        'carros': ['carro', 'cart', 'equipo', 'trabajo'],
+        'semillero': ['semillero', 'seedbed', 'seedling', 'semilla', 'complemento'],
+        'hojas': ['hoja', 'cultivo', 'crop', 'sheet', 'cultivation'],
+        'datos-generales': ['general', 'básico', 'basic', 'cliente', 'cliente', 'principal']
+      };
+      
+      // Verificar si hay palabras clave definidas para esta sección
+      const keywords = sectionKeywords[section.id];
+      if (keywords && keywords.some(keyword => lowerMessage.includes(keyword))) {
+        matchedSection = section;
+        break;
+      }
+    }
+    
+    // Manejar consulta general sobre categorías/secciones
+    if (!matchedSection && 
+        (lowerMessage.includes('categoría') || 
+         lowerMessage.includes('categoria') || 
+         lowerMessage.includes('secciones') || 
+         lowerMessage.includes('sections') ||
+         lowerMessage.includes('catálogo') ||
+         (lowerMessage.includes('que') && lowerMessage.includes('hay')))) {
+      
+      // Listar todas las categorías disponibles
+      const categoriesList = formSections
+        .map(section => `- ${section.title}: ${section.description}`)
+        .join('\n');
+      
+      setChatHistory(prev => [...prev, {
+        sender: 'bot',
+        text: `El formulario está organizado en las siguientes categorías:\n\n${categoriesList}\n\n¿Sobre qué categoría necesitas información?`,
+        questionId: 'categories-list'
+      }]);
+      
+      return true;
+    }
+    
+    // Si encontramos una sección mencionada en el mensaje
+    if (matchedSection) {
+      // Caso 1: Preguntar específicamente por preguntas faltantes/pendientes/obligatorias
+      const isAskingForMissingQuestions = 
+        lowerMessage.includes('falta') || 
+        lowerMessage.includes('pendiente') || 
+        lowerMessage.includes('obligator') ||
+        lowerMessage.includes('importante');
+      
+      // Caso 2: Solicitar ayuda general con una sección
+      const isAskingForSectionHelp = 
+        (lowerMessage.includes('ayuda') || 
+         lowerMessage.includes('ayúda') ||
+         lowerMessage.includes('ayudame') ||
+         lowerMessage.includes('ayudame por favor') ||
+         lowerMessage.includes('ayúdame') ||
+         lowerMessage.includes('dime') ||
+         lowerMessage.includes('mostrar') ||
+         lowerMessage.includes('ver') ||
+         lowerMessage.includes('cuáles') ||
+         lowerMessage.includes('cuales')) &&
+        (lowerMessage.includes('pregunta') || 
+         lowerMessage.includes('campo') ||
+         lowerMessage.includes('información') ||
+         lowerMessage.includes('datos'));
+         
+      // Caso 3: Solicitar completar una sección
+      const isAskingToCompleteSection =
+        (lowerMessage.includes('complet') || 
+         lowerMessage.includes('rellenar') ||
+         lowerMessage.includes('llenar') ||
+         lowerMessage.includes('terminar')) &&
+        (lowerMessage.includes('sección') || 
+         lowerMessage.includes('seccion') ||
+         lowerMessage.includes(matchedSection.id) ||
+         lowerMessage.includes(matchedSection.title.toLowerCase()));
+      
+      // Caso 4: Solicitar información general sobre la sección
+      const isAskingAboutSectionInfo =
+        (lowerMessage.includes('qué es') ||
+         lowerMessage.includes('que es') ||
+         lowerMessage.includes('información sobre') ||
+         lowerMessage.includes('informacion sobre') ||
+         lowerMessage.includes('explica')) &&
+        (lowerMessage.includes(matchedSection.id) ||
+         lowerMessage.includes(matchedSection.title.toLowerCase()));
+         
+      // Caso 5: Preguntar por el total de preguntas en una sección
+      const isAskingAboutQuestionCount = 
+        (lowerMessage.includes('cuántas') || 
+         lowerMessage.includes('cuantas') || 
+         lowerMessage.includes('total') || 
+         lowerMessage.includes('número') || 
+         lowerMessage.includes('numero') ||
+         lowerMessage.includes('cantidad') ||
+         lowerMessage.includes('que necesito')) &&
+        (lowerMessage.includes('pregunta') || 
+         lowerMessage.includes('campos') ||
+         lowerMessage.includes('responder'));
+
+      if (isAskingAboutQuestionCount) {
+        // Obtener estadísticas de la sección
+        const { totalQuestions, completedQuestions, pendingQuestions } = 
+          getPendingQuestionsBySectionId(matchedSection.id);
+        
+        const requiredQuestions = questions.filter(q => {
+          if (!q || !q.Required || typeof q.Orden !== 'number') return false;
+          
+          return matchedSection.orderRanges.some(range => 
+            q.Orden >= range.min && q.Orden <= range.max
+          );
+        }).filter(q => !isSectionSkipped(q, safeSectionStatuses));
+
+        const requiredPending = requiredQuestions.filter(q => 
+          isFieldEmpty(safeFormData, q.IDQuestion)
+        ).length;
+        
+        setChatHistory(prev => [...prev, {
+          sender: 'bot',
+          text: `En la sección "${matchedSection.title}" hay un total de ${totalQuestions} preguntas, de las cuales ${completedQuestions} están completadas y ${pendingQuestions.length} están pendientes. De estas, ${requiredQuestions.length} son obligatorias y ${requiredPending} obligatorias están pendientes.`,
+          questionId: 'section-question-count'
+        }]);
+        
+        return true;
+      }
+
+      // Si es cualquiera de los casos anteriores, o simplemente menciona "ayuda" + [nombre de sección]
+      if (isAskingForMissingQuestions || 
+          isAskingForSectionHelp || 
+          isAskingToCompleteSection ||
+          (lowerMessage.includes('ayuda') && lowerMessage.includes(matchedSection.title.toLowerCase()))) {
+        
+        // Obtener preguntas obligatorias pendientes para esta sección
+        const missingQuestions = getMissingMandatoryQuestionsBySection(matchedSection.id);
+        
+        // Modificación: Obtener TODAS las preguntas de la sección, no solo obligatorias
+        const allSectionQuestions = questions.filter(q => {
+          if (!q || typeof q.Orden !== 'number') return false;
+          
+          return matchedSection.orderRanges.some(range => 
+            q.Orden >= range.min && q.Orden <= range.max
+          );
+        }).filter(q => !isSectionSkipped(q, safeSectionStatuses));
+        
+        if (missingQuestions.length === 0) {
+          // Si no hay preguntas obligatorias pendientes pero hay otras preguntas
+          if (allSectionQuestions.length > 0) {
+            // Obtener la primera pregunta de la sección
+            const firstQuestion = allSectionQuestions[0];
+            
+            // Configurar para mostrar esta pregunta
+            setMissingSectionQuestions([firstQuestion]);
+            setActiveSection(matchedSection);
+            setQuestionIndex(0);
+            
+            // Mensaje modificado que recomienda responder la primera pregunta
+            setChatHistory(prev => [...prev, {
+              sender: 'bot',
+              text: `No hay preguntas obligatorias pendientes en la sección ${matchedSection.title}, pero puedo ayudarte a completar otras preguntas. ¿Te gustaría responder la pregunta "${firstQuestion.Description}"?`,
+              questionId: 'suggest-first-question'
+            }]);
+            return true;
+          } else {
+            // Solo si realmente no hay preguntas en absoluto
+            setChatHistory(prev => [...prev, {
+              sender: 'bot',
+              text: `No hay preguntas disponibles en la sección ${matchedSection.title}.`,
+              questionId: 'section-complete'
+            }]);
+            return true;
+          }
+        }
+        
+        // Guardar las preguntas faltantes y la sección activa
+        setMissingSectionQuestions(missingQuestions);
+        setActiveSection(matchedSection);
+        setQuestionIndex(0);
+        
+        // Mostrar mensaje con las preguntas faltantes
+        const questionList = missingQuestions
+          .slice(0, 5) // Limitar para no saturar
+          .map((q, idx) => `${idx + 1}. ${q.Description}${q.Required ? ' *' : ''}`)
+          .join('\n');
+          
+        const moreQuestionsText = missingQuestions.length > 5 
+          ? `\n...y ${missingQuestions.length - 5} más.` 
+          : '';
+        
+        setChatHistory(prev => [...prev, {
+          sender: 'bot',
+          text: `En la sección ${matchedSection.title} faltan las siguientes preguntas obligatorias:\n\n${questionList}${moreQuestionsText}\n\n¿Quieres que te ayude a responderlas?`,
+          questionId: 'missing-questions'
+        }]);
+        
+        return true;
+      }
+      
+      // Si solo está preguntando información sobre la sección
+      if (isAskingAboutSectionInfo) {
+        // Obtener el total de preguntas para esta sección
+        const sectionQuestions = questions.filter(q => {
+          if (!q || typeof q.Orden !== 'number') return false;
+          
+          return matchedSection.orderRanges.some(range => 
+            q.Orden >= range.min && q.Orden <= range.max
+          );
+        });
+        
+        const requiredCount = sectionQuestions.filter(q => q.Required).length;
+        
+        setChatHistory(prev => [...prev, {
+          sender: 'bot',
+          text: `La sección "${matchedSection.title}" se refiere a ${matchedSection.description}. Contiene ${sectionQuestions.length} preguntas en total, de las cuales ${requiredCount} son obligatorias. ¿Quieres que te muestre las preguntas pendientes?`,
+          questionId: 'section-info'
+        }]);
+        
+        return true;
+      }
+    }
+    
+    // NUEVO: Detectar si el mensaje coincide con alguna pregunta de la lista de pendientes
+    if (missingSectionQuestions.length > 0) {
+      // Buscar coincidencia con el nombre de la pregunta
+      const questionMatch = missingSectionQuestions.find(q => 
+        lowerMessage.includes(q.Description.toLowerCase())
+      );
+      
+      if (questionMatch) {
+        // Encontrar el índice de esta pregunta en la lista
+        const questionIdx = missingSectionQuestions.findIndex(q => q.IDQuestion === questionMatch.IDQuestion);
+        
+        if (questionIdx >= 0) {
+          // Actualizar el estado para mostrar esta pregunta específica
+          setQuestionIndex(questionIdx);
+          setActiveQuestion(questionMatch);
+          setIsAnsweringQuestions(true);
+          
+          // Mostrar la pregunta con sus opciones
+          let message = `📝 ${questionMatch.Description}${questionMatch.Required ? ' *' : ''}`;
+          
+          // Si es una pregunta tipo select, mostrar opciones
+          if (questionMatch.Type === 3 && questionMatch.Answers && questionMatch.Answers.length > 0) {
+            const options = questionMatch.Answers.map(a => `- ${a.Description}`).join('\n');
+            message += `\n\nOpciones:\n${options}`;
+          }
+          
+          setChatHistory(prev => [...prev, {
+            sender: 'bot',
+            text: message,
+            questionId: questionMatch.IDQuestion,
+            options: questionMatch.Type === 3 ? questionMatch.Answers : null
+          }]);
+          
+          return true;
+        }
+      }
+    }
+    
+    // Detectar solicitudes generales de ayuda con el formulario
+    if (lowerMessage.includes('ayuda') && 
+        (lowerMessage.includes('formulario') || 
+         lowerMessage.includes('preguntas') || 
+         lowerMessage.includes('obligatorias'))) {
+      
+      // Listar todas las secciones con preguntas obligatorias pendientes
+      const sectionsWithMissingRequired = formSections
+        .filter(section => {
+          const missingQuestions = getMissingMandatoryQuestionsBySection(section.id);
+          return missingQuestions.length > 0;
+        })
+        .map(section => {
+          const missingQuestions = getMissingMandatoryQuestionsBySection(section.id);
+          return {
+            section,
+            missingCount: missingQuestions.length
+          };
+        });
+      
+      if (sectionsWithMissingRequired.length === 0) {
+        setChatHistory(prev => [...prev, {
+          sender: 'bot',
+          text: '¡Genial! No hay preguntas obligatorias pendientes en el formulario. Todas las secciones obligatorias están completas.',
+          questionId: 'all-sections-complete'
+        }]);
+        return true;
+      }
+      
+      // Mostrar secciones con preguntas pendientes
+      const sectionsList = sectionsWithMissingRequired
+        .map(item => `- ${item.section.title}: ${item.missingCount} preguntas obligatorias pendientes`)
+        .join('\n');
+      
+      setChatHistory(prev => [...prev, {
+        sender: 'bot',
+        text: `Las siguientes secciones tienen preguntas obligatorias pendientes:\n\n${sectionsList}\n\n¿Sobre qué sección quieres que te ayude?`,
+        questionId: 'sections-with-missing'
+      }]);
+      
+      return true;
+    }
+    
+    return false;
+  }, [getMissingMandatoryQuestionsBySection, missingSectionQuestions, questions, safeSectionStatuses]);
+
+  // Función para manejar la respuesta de querer contestar preguntas
+  const handleStartAnsweringQuestions = React.useCallback(() => {
+    if (missingSectionQuestions.length === 0 || !activeSection) return;
+    
+    setIsAnsweringQuestions(true);
+    setActiveQuestion(missingSectionQuestions[0]);
+    
+    // Mostrar la primera pregunta
+    const question = missingSectionQuestions[0];
+    let message = `📝 ${question.Description}${question.Required ? ' *' : ''}`;
+    
+    // Si es una pregunta tipo select, mostrar opciones
+    if (question.Type === 3 && question.Answers && question.Answers.length > 0) {
+      const options = question.Answers.map(a => `- ${a.Description}`).join('\n');
+      message += `\n\nOpciones:\n${options}`;
+    }
+    
+    setChatHistory(prev => [...prev, {
+      sender: 'bot',
+      text: message,
+      questionId: question.IDQuestion,
+      options: question.Type === 3 ? question.Answers : null
+    }]);
+    
+  }, [missingSectionQuestions, activeSection]);
+
+  // Función para procesar la respuesta a una pregunta activa
+  const handleQuestionAnswer = React.useCallback((answer) => {
+    if (!activeQuestion || !isAnsweringQuestions) return false;
+    
+    const questionId = activeQuestion.IDQuestion;
+    let validAnswer = answer;
+    
+    // Para preguntas tipo select, buscar la opción que coincide con la respuesta
+    if (activeQuestion.Type === 3 && activeQuestion.Answers) {
+      const lowerAnswer = answer.toLowerCase();
+      const matchedOption = activeQuestion.Answers.find(option => 
+        option.Description.toLowerCase().includes(lowerAnswer) ||
+        lowerAnswer.includes(option.Description.toLowerCase())
+      );
+      
+      if (matchedOption) {
+        validAnswer = matchedOption.CodAnswer.toString();
+      }
+    }
+    
+    // Actualizar el formulario con esta respuesta
+    const updateData = {
+      [questionId]: validAnswer
+    };
+    
+    onUpdateFormData(updateData, []);
+    
+    // Añadir mensaje de confirmación
+    setChatHistory(prev => [...prev, {
+      sender: 'bot',
+      text: `✅ Respuesta guardada para "${activeQuestion.Description}"`,
+      questionId: `confirmation-${questionId}`
+    }]);
+    
+    // Mover a la siguiente pregunta
+    const nextIndex = questionIndex + 1;
+    if (nextIndex < missingSectionQuestions.length) {
+      setQuestionIndex(nextIndex);
+      setActiveQuestion(missingSectionQuestions[nextIndex]);
+      
+      // Mostrar la siguiente pregunta después de una breve pausa
+      setTimeout(() => {
+        const nextQuestion = missingSectionQuestions[nextIndex];
+        let message = `📝 ${nextQuestion.Description}${nextQuestion.Required ? ' *' : ''}`;
+        
+        // Si es una pregunta tipo select, mostrar opciones
+        if (nextQuestion.Type === 3 && nextQuestion.Answers && nextQuestion.Answers.length > 0) {
+          const options = nextQuestion.Answers.map(a => `- ${a.Description}`).join('\n');
+          message += `\n\nOpciones:\n${options}`;
+        }
+        
+        setChatHistory(prev => [...prev, {
+          sender: 'bot',
+          text: message,
+          questionId: nextQuestion.IDQuestion,
+          options: nextQuestion.Type === 3 ? nextQuestion.Answers : null
+        }]);
+      }, 1000);
+    } else {
+      // Hemos terminado con todas las preguntas
+      setIsAnsweringQuestions(false);
+      setActiveQuestion(null);
+      setMissingSectionQuestions([]);
+      
+      setTimeout(() => {
+        setChatHistory(prev => [...prev, {
+          sender: 'bot',
+          text: `¡Excelente! Has completado todas las preguntas obligatorias pendientes de la sección ${activeSection.title}. ¿Hay algo más en lo que pueda ayudarte?`,
+          questionId: 'questions-completed'
+        }]);
+        setActiveSection(null);
+      }, 1000);
+    }
+    
+    return true;
+  }, [activeQuestion, isAnsweringQuestions, questionIndex, missingSectionQuestions, activeSection, onUpdateFormData]);
+
+  // Modificar handleSend para incluir las nuevas funcionalidades
   const handleSend = React.useCallback(async (answer) => {
     // Add the user's message to chat history
     setChatHistory(prev => [...prev, { sender: 'user', text: answer }]);
@@ -747,7 +1220,57 @@ const Chatbot = ({
     
     try {
       const lowerAnswer = answer.toLowerCase().trim();
+
+      // 1. Verificar si estamos en medio de responder preguntas secuenciales
+      if (isAnsweringQuestions && activeQuestion) {
+        const wasHandled = handleQuestionAnswer(answer);
+        if (wasHandled) {
+          setTypingWithMinDuration(false);
+          return;
+        }
+      }
       
+      // 2. Verificar si hay una intención de responder preguntas ofrecidas
+      if (missingSectionQuestions.length > 0) {
+        // Caso afirmativo - el usuario quiere ayuda con las preguntas
+        if (lowerAnswer.includes('sí') || 
+           lowerAnswer.includes('si') || 
+           lowerAnswer.includes('ok') || 
+           lowerAnswer.includes('vale') ||
+           lowerAnswer.includes('claro')) {
+          handleStartAnsweringQuestions();
+          setTypingWithMinDuration(false);
+          return;
+        }
+        // Caso negativo - el usuario no quiere ayuda con las preguntas
+        else if (lowerAnswer === 'no' || 
+                lowerAnswer.includes('no quiero') || 
+                lowerAnswer.includes('negativo') ||
+                lowerAnswer.includes('ahora no')) {
+          // Limpiar estado de las preguntas de sección
+          setMissingSectionQuestions([]);
+          setActiveSection(null);
+          
+          // Responder indicando que puede continuar normalmente
+          setChatHistory(prev => [...prev, {
+            sender: 'bot',
+            text: 'Entendido. Puedes continuar contándome sobre tu proyecto y extraeré la información relevante, o preguntarme sobre otras secciones del formulario.',
+            questionId: 'declined-section-help'
+          }]);
+          
+          setTypingWithMinDuration(false);
+          return;
+        }
+      }
+      
+      // 3. Detectar consultas sobre secciones específicas y coincidencias de nombres de preguntas
+      const wasSectionQuery = handleSectionQuery(answer);
+      if (wasSectionQuery) {
+        setTypingWithMinDuration(false);
+        return;
+      }
+      
+      // Resto del código original para intención de envío, estado de progreso, etc.
       // Check for submission intent keywords
       const isSubmitIntent = lowerAnswer.match(/(?:enviar|submit|finalizar|terminar|listo|completado)/i);
       
@@ -882,7 +1405,7 @@ const Chatbot = ({
     } finally {
       setTypingWithMinDuration(false);
     }
-  }, [setTypingWithMinDuration, chatHistory, getCachedExtraction, getPendingQuestionsBySectionId, questions, getFormCompletionSummary, safeSectionStatuses, onUpdateFormData, showCompletedFieldsSummary, safeFormData, extractDataInBatches, processBatchesInBackground, getMissingRequiredFields]);
+  }, [setTypingWithMinDuration, getCachedExtraction, questions, safeSectionStatuses, onUpdateFormData, showCompletedFieldsSummary, safeFormData, extractDataInBatches, processBatchesInBackground, getMissingRequiredFields, isAnsweringQuestions, activeQuestion, missingSectionQuestions, handleQuestionAnswer, handleStartAnsweringQuestions, handleSectionQuery]);
 
   // Manejar cambio de entrada - mover fuera del hook
   const handleChange = (e) => {
@@ -927,6 +1450,16 @@ const Chatbot = ({
                     )}
                     <div className="message-content">
                       <div className="message-text">{message.text}</div>
+                      {message.options && (
+                        <OptionsDisplay 
+                          options={message.options} 
+                          onSelect={(option) => {
+                            setInputValue(option);
+                            // Auto-submitting on option selection is convenient but optional
+                            setTimeout(() => handleSubmit(), 100);
+                          }} 
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
