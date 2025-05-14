@@ -3,9 +3,26 @@ import './FormularioManual.css';
 import { fetchPreguntas, enviarRespuestas } from '../../services/api';
 import FormSection from './FormSection';
 import { formSections } from './sectionConfig';
-// eslint-disable-next-line no-unused-vars
-import { motion } from 'framer-motion';
 import { FaArrowUp } from 'react-icons/fa';
+import { jsPDF } from 'jspdf';
+
+// Función de utilidad para formatear fechas sin dependencias externas
+const formatDate = (date, formatType) => {
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  
+  switch (formatType) {
+    case 'full':
+      return `${day}/${month}/${year} ${hours}:${minutes}`;
+    case 'filename':
+      return `${year}${month}${day}`;
+    default:
+      return `${day}/${month}/${year}`;
+  }
+};
 
 function FormularioManual({ formData = {}, onFormChange, autocompletados = [], onSectionStatusChange }) {
   const [localFormData, setLocalFormData] = useState(formData);
@@ -27,7 +44,7 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
-      behavior: 'smooth' // Esto añade el efecto de scroll suave
+      behavior: 'smooth'
     });
   };
 
@@ -69,7 +86,6 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
     if (value === '') return false;
     if (Array.isArray(value) && value.length === 0) return false;
     
-    // Verificar valores por defecto que no deberían considerarse como completados
     if (typeof value === 'string') {
       const lowerValue = value.toLowerCase().trim();
       const defaultValues = [
@@ -196,7 +212,7 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
       return;
     }
     
-    const normalizedStatus = status?.toLowerCase(); // Normalize to lowercase
+    const normalizedStatus = status?.toLowerCase();
     console.log(`Section ${sectionId} status changed to: ${normalizedStatus}`);
     
     const newStatuses = {
@@ -205,7 +221,6 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
     };
     setSectionStatuses(newStatuses);
     
-    // If marking as "no", clear form data for this section's questions
     if (normalizedStatus === 'no') {
       console.log(`Clearing fields for section ${sectionId} marked as 'no'`);
       
@@ -218,7 +233,6 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
         );
       });
       
-      // Create a cleaned form data object
       const cleanedData = {...localFormData};
       let fieldsRemoved = false;
       
@@ -229,11 +243,9 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
         }
       });
       
-      // Only update if fields were actually removed
       if (fieldsRemoved) {
         setLocalFormData(cleanedData);
         
-        // Notify parent component about cleared fields
         if (onFormChange) {
           const changes = {};
           sectionQuestions.forEach(q => {
@@ -253,7 +265,6 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
     const questionId = question.IDQuestion;
     const rawValue = localFormData[questionId] ?? '';
     
-    // Limpiar valores no deseados
     let value = rawValue;
     if (typeof rawValue === 'string') {
       const lowerValue = rawValue.toLowerCase().trim();
@@ -266,14 +277,12 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
       if (defaultValues.includes(lowerValue) || 
           lowerValue.includes('no mencionado') || 
           lowerValue.includes('no especificado')) {
-        value = ''; // Reemplazar con string vacío
+        value = '';
       }
     }
     
-    // Determinar si el campo tiene un valor real
     const hasRealValue = isFieldCompleted(value);
     
-    // Código para los campos tipo select
     if (question.Type === 3 && answers[questionId]) {
       const stringValue = value.toString();
       
@@ -332,10 +341,192 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
     );
   }, [localFormData, answers, handleInputChange, isFieldCompleted]);
 
+  const generatePDF = useCallback(() => {
+    // Crear instancia de jsPDF
+    const doc = new jsPDF();
+    
+    // Configuración de estilo
+    const titleFontSize = 18;
+    const sectionFontSize = 14;
+    const normalFontSize = 10;
+    
+    // Añadir título y fecha
+    doc.setFontSize(titleFontSize);
+    doc.setTextColor(44, 82, 130); // RGB equivalente a primaryColor
+    doc.text('Resumen de Proyecto Agrícola', 14, 20);
+    
+    const currentDate = formatDate(new Date(), 'full');
+    doc.setFontSize(normalFontSize);
+    doc.setTextColor(100);
+    doc.text(`Fecha de generación: ${currentDate}`, 14, 30);
+    doc.text(`Cliente: ${localFormData['1'] || 'No especificado'}`, 14, 35);
+    
+    // Línea separadora
+    doc.setDrawColor(220);
+    doc.line(14, 40, 196, 40);
+    
+    let yPosition = 50;
+    
+    // Crear tabla de contenidos
+    doc.setFontSize(sectionFontSize);
+    doc.setTextColor(44, 82, 130);
+    doc.text('Tabla de Contenidos', 14, yPosition);
+    yPosition += 10;
+    
+    // Filtrar secciones aplicables
+    const applicableSections = formSections.filter(section => 
+      sectionStatuses[section.id] === 'yes' || sectionStatuses[section.id] !== 'no'
+    );
+    
+    // Listar secciones en la tabla de contenidos
+    applicableSections.forEach((section, index) => {
+      doc.setFontSize(normalFontSize);
+      doc.setTextColor(70);
+      doc.text(`${index + 1}. ${section.title}`, 20, yPosition);
+      yPosition += 7;
+      
+      if (yPosition > 270) {
+        doc.addPage();
+        yPosition = 20;
+      }
+    });
+    
+    yPosition += 10;
+    
+    // Para cada sección
+    applicableSections.forEach((section, sectionIndex) => {
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      // Título de sección
+      doc.setFontSize(sectionFontSize);
+      doc.setTextColor(44, 82, 130);
+      doc.text(`${sectionIndex + 1}. ${section.title}`, 14, yPosition);
+      yPosition += 10;
+      
+      // Preguntas de esta sección
+      const sectionQuestions = questions.filter(q => {
+        return section.orderRanges.some(range => 
+          q.Orden >= range.min && q.Orden <= range.max
+        );
+      });
+      
+      if (sectionQuestions.length === 0) {
+        doc.setFontSize(normalFontSize);
+        doc.setTextColor(100);
+        doc.text('No hay preguntas en esta sección.', 20, yPosition);
+        yPosition += 15;
+        return;
+      }
+      
+      // Dibujar encabezados de tabla manualmente
+      doc.setFillColor(44, 82, 130);
+      doc.rect(14, yPosition, 90, 8, 'F');
+      doc.rect(104, yPosition, 90, 8, 'F');
+      doc.setTextColor(255);
+      doc.setFontSize(normalFontSize);
+      doc.text('Pregunta', 16, yPosition + 5);
+      doc.text('Respuesta', 106, yPosition + 5);
+      yPosition += 8;
+      
+      // Variables para alternar colores de fila
+      let isAlternateRow = false;
+      
+      // Listar preguntas y respuestas
+      sectionQuestions.forEach(question => {
+        const questionId = question.IDQuestion;
+        let value = localFormData[questionId];
+        
+        // Omitir preguntas sin respuesta
+        if (value === undefined || value === null || value === '') {
+          return;
+        }
+        
+        // Formatear respuestas
+        if (question.Type === 3 && answers[questionId]) {
+          const selectedOption = answers[questionId].find(
+            ans => ans.CodAnswer.toString() === value.toString()
+          );
+          if (selectedOption) {
+            value = selectedOption.Description;
+          }
+        } else if (question.Type === 10) {
+          value = value === true ? 'Sí' : 'No';
+        }
+        
+        // Indicador de autocompletado
+        const isAutoCompleted = autocompletados.includes(questionId);
+        const autoLabel = isAutoCompleted ? ' [Auto]' : '';
+        
+        // Dibujar celda con color alternado
+        if (isAlternateRow) {
+          doc.setFillColor(245, 247, 250);
+          doc.rect(14, yPosition, 90, 8, 'F');
+          doc.rect(104, yPosition, 90, 8, 'F');
+        }
+        
+        // Texto de pregunta y respuesta
+        doc.setTextColor(50);
+        doc.text(`${question.Description}${question.Required ? ' *' : ''}${autoLabel}`, 16, yPosition + 5, { 
+          maxWidth: 85 
+        });
+        doc.text(value.toString(), 106, yPosition + 5, { 
+          maxWidth: 85 
+        });
+        
+        yPosition += 8;
+        isAlternateRow = !isAlternateRow;
+        
+        // Nueva página si es necesario
+        if (yPosition > 270) {
+          doc.addPage();
+          yPosition = 20;
+          
+          // Repetir encabezados de tabla
+          doc.setFillColor(44, 82, 130);
+          doc.rect(14, yPosition, 90, 8, 'F');
+          doc.rect(104, yPosition, 90, 8, 'F');
+          doc.setTextColor(255);
+          doc.text('Pregunta', 16, yPosition + 5);
+          doc.text('Respuesta', 106, yPosition + 5);
+          yPosition += 8;
+          isAlternateRow = false;
+        }
+      });
+      
+      yPosition += 15;
+    });
+    
+    // Añadir pie de página
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text(
+        'Novagric - Resumen de Proyecto',
+        14,
+        doc.internal.pageSize.height - 10
+      );
+      doc.text(
+        `Página ${i} de ${totalPages}`,
+        doc.internal.pageSize.width - 25,
+        doc.internal.pageSize.height - 10
+      );
+    }
+    
+    // Guardar PDF
+    const pdfName = `Proyecto_${localFormData['1'] || 'Cliente'}_${formatDate(new Date(), 'filename')}.pdf`;
+    doc.save(pdfName);
+    
+    return pdfName;
+  }, [localFormData, questions, sectionStatuses, answers, autocompletados]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Check for required fields
     const missingRequiredFields = questions
       .filter(q => q.Required && shouldShowQuestion(q) && 
         !isFieldCompleted(localFormData[q.IDQuestion]))
@@ -358,6 +549,14 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
 
       console.log("Enviando datos:", dataToSend);
       await enviarRespuestas(dataToSend);
+      
+      try {
+        const pdfName = generatePDF();
+        console.log(`PDF generado exitosamente: ${pdfName}`);
+      } catch (pdfError) {
+        console.error("Error generando el PDF:", pdfError);
+      }
+      
       setIsSuccess(true);
     } catch (err) {
       console.error("Error al enviar formulario:", err);
@@ -441,10 +640,8 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
             const sectionQuestions = questionsBySections[section.id] || [];
             const hasQuestions = sectionQuestions.length > 0;
             
-            // No mostrar secciones sin preguntas
             if (!hasQuestions) return null;
             
-            // Agregar separadores entre grupos funcionales de secciones
             const shouldShowDivider = index > 0 && index % 3 === 0;
             const sectionStatus = sectionStatuses[section.id];
             
@@ -495,7 +692,7 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
                         }}
                         title="Marcar como no aplicable"
                         aria-label="Marcar como no aplicable"
-                        disabled={section.id === 'datos-generales'} // Deshabilitar para "datos-generales"
+                        disabled={section.id === 'datos-generales'}
                         style={section.id === 'datos-generales' ? 
                           {opacity: 0.5, cursor: 'not-allowed'} : {}}
                       >
@@ -555,6 +752,15 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
               disabled={isLoading || !selectedSectionId || (questionsBySections[selectedSectionId] || []).length === 0}
             >
               {isLoading ? 'Enviando...' : 'Enviar Formulario'}
+            </button>
+            
+            <button
+              type="button"
+              className="btn-generate-pdf"
+              onClick={() => generatePDF()}
+              disabled={isLoading}
+            >
+              Generar Resumen PDF
             </button>
           </div>
         </form>
