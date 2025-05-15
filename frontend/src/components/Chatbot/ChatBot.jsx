@@ -259,7 +259,8 @@ const Chatbot = ({
   formData = {},
   onClose,
   isVisible,
-  sectionStatuses = {} // Añadir prop con valor por defecto
+  sectionStatuses = {}, // Añadir prop con valor por defecto
+  isMobile = false // Accept the mobile prop
 }) => {
   // Estado necesario
   const safeFormData = React.useMemo(() => formData || {}, [formData]);
@@ -758,6 +759,44 @@ const Chatbot = ({
     );
   }, [questions, safeSectionStatuses, safeFormData]);
 
+  // Add this function after the getMissingRequiredFields function
+
+  // Find the next non-required unanswered question
+  const getNextNonRequiredQuestion = React.useCallback(() => {
+    // Get all active questions that aren't in skipped sections
+    const activeQuestions = questions.filter(q => !isSectionSkipped(q, safeSectionStatuses));
+    
+    // Sort questions by their order to follow form sequence
+    const sortedQuestions = [...activeQuestions].sort((a, b) => {
+      if (a.Orden !== undefined && b.Orden !== undefined) {
+        return a.Orden - b.Orden;
+      }
+      return 0;
+    });
+    
+    // Find the first non-required question that hasn't been answered yet
+    const nextQuestion = sortedQuestions.find(q => 
+      // Not required and not completed yet
+      !q.Required && isFieldEmpty(safeFormData, q.IDQuestion)
+    );
+    
+    if (nextQuestion) {
+      // Find which section this question belongs to
+      const section = formSections.find(s => 
+        s.orderRanges.some(range => 
+          nextQuestion.Orden >= range.min && nextQuestion.Orden <= range.max
+        )
+      );
+      
+      return {
+        question: nextQuestion,
+        section: section
+      };
+    }
+    
+    return null;
+  }, [questions, safeSectionStatuses, safeFormData]);
+
   // Nueva función para obtener preguntas faltantes obligatorias de una sección específica
   const getMissingMandatoryQuestionsBySection = React.useCallback((sectionId) => {
     // Verificar si la sección existe y está activa (no marcada como "no")
@@ -1112,8 +1151,66 @@ const Chatbot = ({
       return true;
     }
 
+    // Handle generic "what's next" or "what should I do" queries
+    const isGenericNextQuestion = 
+      lowerMessage.includes('por donde sigo') || 
+      lowerMessage.includes('que hago ahora') ||
+      lowerMessage.includes('qué hago ahora') ||
+      lowerMessage.includes('siguiente paso') ||
+      lowerMessage.includes('siguiente pregunta') ||
+      lowerMessage.includes('como continuo') || 
+      lowerMessage.includes('cómo continúo') ||
+      lowerMessage.includes('qué sigue');
+
+    if (isGenericNextQuestion) {
+      // First try to find a non-required question
+      const nextNonRequired = getNextNonRequiredQuestion();
+      
+      if (nextNonRequired) {
+        const { question, section } = nextNonRequired;
+        
+        setChatHistory(prev => [...prev, {
+          sender: 'bot',
+          text: `Te sugiero continuar con esta pregunta opcional en la sección "${section?.title || 'General'}": "${question.Description}"`,
+          questionId: 'suggest-next-nonrequired'
+        }]);
+        
+        return true;
+      } else {
+        // If no non-required questions are available, fall back to required ones
+        const missingRequired = getMissingRequiredFields();
+        
+        if (missingRequired.length > 0) {
+          const firstRequired = missingRequired[0];
+          
+          // Find which section this question belongs to
+          const section = formSections.find(s => 
+            s.orderRanges.some(range => 
+              firstRequired.Orden >= range.min && firstRequired.Orden <= range.max
+            )
+          );
+          
+          setChatHistory(prev => [...prev, {
+            sender: 'bot',
+            text: `No hay preguntas opcionales pendientes. Te sugiero completar esta pregunta obligatoria en la sección "${section?.title || 'General'}": "${firstRequired.Description}"`,
+            questionId: 'suggest-required-question'
+          }]);
+          
+          return true;
+        } else {
+          setChatHistory(prev => [...prev, {
+            sender: 'bot',
+            text: `¡Excelente! Has completado todas las preguntas del formulario. Puedes revisar tus respuestas o enviar el formulario cuando estés listo.`,
+            questionId: 'all-questions-complete'
+          }]);
+          
+          return true;
+        }
+      }
+    }
+
     return false;
-  }, [getMissingMandatoryQuestionsBySection, getPendingQuestionsBySectionId, missingSectionQuestions, questions, safeFormData, safeSectionStatuses]);
+  }, [getMissingMandatoryQuestionsBySection, getPendingQuestionsBySectionId, missingSectionQuestions, questions, safeFormData, safeSectionStatuses, getNextNonRequiredQuestion, getMissingRequiredFields]);
 
   // Función para manejar la respuesta de querer contestar preguntas
   const handleStartAnsweringQuestions = React.useCallback(() => {
@@ -1428,7 +1525,7 @@ const Chatbot = ({
   // ESTRUCTURA DE RENDERIZADO CORREGIDA
   try {
     return (
-      <div className="chatbot-wrapper">
+      <div className={`chatbot-wrapper ${isMobile ? 'mobile-view' : ''}`}>
         <ChatHeader onClose={onClose} />
         <div className="chatbot-main-container">
           <div className="chat-card">

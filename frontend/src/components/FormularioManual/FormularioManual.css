@@ -1,46 +1,50 @@
+/* --- CORE VARIABLES --- */
+:root {
+  --primary-color: #4a73db;
+  --primary-dark: #3a5caf;
+  --primary-light: #6b8ce4;
+  --success-color: #48BB78;
+  --danger-color: #dc3545;
+}
+
 /* --- NUEVO LAYOUT PRINCIPAL --- */
 
 /* Contenedor principal - ocupar toda la altura */
 .formulario-manual-container {
   display: flex;
   min-height: 100vh;
+  height: 100vh; /* Full viewport height */
+  overflow: hidden; /* Prevent outer container from scrolling */
   width: 100%;
-  background-color: #f4f7f9; /* Un gris azulado muy claro y suave */
+  background-color: #f8f9fa; /* Updated background color */
   position: relative;
-  font-family: var(--font-family);
-  color: var(--gray-800);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; /* Updated font-family */
+  color: #334155; /* Updated color */
 }
 
 /* Barra lateral mejorada */
 .form-sidebar {
-  width: 380px; /* Mantenemos un ancho generoso */
-  min-height: 100vh;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  background-color: white;
-  overflow: hidden;
-  padding: 0;
   display: flex;
   flex-direction: column;
-  z-index: 100; /* Asegurar que esté por encima del contenido */
+  width: 100%; /* Updated width */
+  height: 100%; /* Full height */
+  overflow-y: auto; /* Allow sidebar to scroll if content is too long */
+  flex-shrink: 0; /* Prevent sidebar from shrinking */
   position: sticky;
   top: 0;
-}
-
-.sidebar-header {
-  padding: 16px;
-  border-bottom: 2px solid rgba(0, 0, 0, 0.08);
-  background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
-}
-
-.sidebar-header h4 {
-  margin: 0;
-  color: #374151;
-  font-weight: 600;
-  font-size: 16px;
+  padding: 20;
+  background-color: #fff; /* Updated background color */
+  border-right: 1px solid rgba(0, 0, 0, 0.1); /* Updated border */
+  box-shadow: 1px 0 5px rgba(0, 0, 0, 0.03); /* Updated box-shadow */
+  z-index: 100; /* Asegurar que esté por encima del contenido */
+  scrollbar-width: thin; /* Added scrollbar styles */
+  scrollbar-color: #cbd5e1 #f8fafc; /* Added scrollbar colors */
 }
 
 .form-sidebar ul {
+  flex: 1; /* Take up all available space */
+  display: flex;
+  flex-direction: column;
   padding: 0;
   margin: 0;
   list-style: none;
@@ -48,16 +52,17 @@
 
 .form-sidebar li {
   position: relative;
-  padding: 19px 12px; /* Reducir un poco el padding para acomodar los botones */
   display: flex;
   align-items: center;
   cursor: pointer;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.158);
   transition: all 0.2s ease;
+  font-size: 20px;
 }
 
 .form-sidebar li:last-child {
   border-bottom: none;
+  margin-bottom: auto; /* Push all items to the top */
 }
 
 .form-sidebar li:hover {
@@ -71,7 +76,7 @@
 }
 
 .form-sidebar li .sidebar-icon {
-  color: #6b7280;
+  color: #0000008a;
   min-width: 20px;
   transition: all 0.2s ease;
 }
@@ -80,23 +85,45 @@
   color: #4a73db;
 }
 
-/* Estilos para los divisores entre grupos de secciones */
-.sidebar-divider {
-  height: px;
-  background: linear-gradient(to right, rgba(0,0,0,0.03), rgba(0,0,0,0.08), rgba(0,0,0,0.03));
-  margin: 10px 10px;
+/* Enhance sidebar header */
+.sidebar-header {
+  padding: 1rem; /* Updated padding */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1); /* Updated border */
+  background: linear-gradient(to bottom, #ffffff, #f8fafc);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.sidebar-header h4 {
+  margin: 0;
+  color: #1e293b;
+  font-weight: 600;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
 }
 
 /* Mejorar el diseño de los elementos del sidebar */
 .sidebar-item {
   position: relative;
-  padding: 20px 22px; /* Reducir un poco el padding para acomodar los botones */
+  padding: 0.75rem 1rem; /* Updated padding */
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
   transition: all 0.2s ease;
-  border-left: 4px solid transparent;
+  border-left: 3px solid transparent; /* Updated border */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1); /* Updated border */
+}
+
+.sidebar-item:hover {
+  background-color: rgba(74, 115, 219, 0.06);
+}
+
+.sidebar-item.active {
+  background-color: rgba(74, 115, 219, 0.1); /* Updated background */
+  border-left-color: #4a73db; /* Updated border color */
 }
 
 .sidebar-item-content {
@@ -118,9 +145,9 @@
 }
 
 .sidebar-item-text {
-  font-size: 14px;
+  font-size: 0.95rem;
   font-weight: 500;
-  color: #4b5563;
+  color: #374151;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -133,77 +160,52 @@
   white-space: nowrap;
 }
 
-/* Añadir un contador de preguntas */
-.questions-count {
-  background-color: rgba(0,0,0,0.06);
-  color: #6b7280;
-  font-size: 12px;
-  font-weight: 600;
-  min-width: 24px; /* Garantizar espacio suficiente */
-  height: 22px;
-  border-radius: 11px;
+/* Update the sidebar-item-actions class */
+
+.sidebar-item-actions {
   display: flex;
+  flex-direction: row; /* Make sure buttons are in a row */
+  gap: 5px; /* Small gap between buttons */
   align-items: center;
-  justify-content: center;
-  padding: 0 6px;
-}
-
-.sidebar-item.active .questions-count {
-  background-color: #4a73db;
-  color: white;
-}
-
-/* Mejorar la apariencia en hover */
-.sidebar-item:hover {
-  background-color: rgba(74, 115, 219, 0.06);
-}
-
-.sidebar-item.active {
-  background-color: rgba(74, 115, 219, 0.10);
-  border-left-color: #4a73db;
+  justify-content: flex-end;
 }
 
 /* Estilos para los botones de Sí/No en el sidebar */
-.sidebar-item-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: px;
-}
 
+/* Replace current sidebar-btn styles with these */
 .sidebar-btn {
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
   background-color: white;
-  color: var(--gray-700);
-  font-size: 0.7rem;
+  color: #475569;
+  font-size: 0.75rem;
   font-weight: 600;
-  padding: 5px 8px;
-  border-radius: 2px;
+  padding: 5px 10px;
+  border-radius: 5px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  min-width: 28px;
+  min-width: 36px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
+  letter-spacing: 0.02em;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .sidebar-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-color: #cbd5e1;
+  background-color: #f8fafc;
 }
 
 .sidebar-btn.active {
-  border-color: transparent;
+  background-color: #2c4282;
+  border-color: #2c4282;
   color: white;
+  box-shadow: 0 1px 3px rgba(44, 66, 130, 0.3);
 }
 
-.sidebar-btn-yes.active {
-  background-color: #48BB78;
-}
-
-.sidebar-btn-no.active {
-  background-color: #F56565;
+.sidebar-btn.active:focus {
+  animation: subtlePulse 1.5s infinite;
 }
 
 /* Tooltip para indicación visual */
@@ -211,29 +213,30 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  margin-right: 6px;
+  margin-right: 0.5rem; /* Updated margin */
   display: inline-block;
   flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
 }
 
 .status-pending {
-  background-color: var(--gray-400);
+  background-color: #94a3b8;
 }
 
 .status-completed {
-  background-color: #48BB78;
+  background-color: #10b981;
 }
 
 .status-skipped {
-  background-color: #F56565;
+  background-color: #ef4444;
 }
 
 /* Contenido principal */
 .form-main-content {
   flex: 1;
-  min-height: 100vh;
-  overflow-y: auto;
-  padding: 30px 40px;
+  height: 100vh; /* Full height */
+  overflow-y: auto; /* Only this area will scroll */
+  padding: 20px;
   background-color: #f4f7f9;
 }
 
@@ -252,13 +255,14 @@
 
 /* --- Estilos de Sección Mejorados --- */
 .form-section {
-  border-radius: 12px; /* Bordes más redondeados */
+  border-radius: 0.5rem; /* Updated border radius */
   overflow: hidden;
-  background-color: #ffffff;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.07); /* Sombra más suave y profesional */
+  background-color: #fff; /* Updated background color */
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); /* Updated box-shadow */
   border: 1px solid var(--gray-200); /* Borde sutil */
   transition: box-shadow 0.3s ease;
-  margin-bottom: 0; /* Eliminado, el gap del container lo maneja */
+  margin-bottom: 1.5rem; /* Updated margin */
+  animation: fadeIn 0.3s ease-in-out;
 }
 
 .form-section:hover {
@@ -269,11 +273,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 22px 28px; /* Más padding */
+  padding: 1rem; /* Updated padding */
   cursor: pointer;
   user-select: none;
-  background-color: #ffffff; /* Fondo blanco para el header */
-  border-bottom: 1px solid var(--gray-200);
+  background-color: #fff; /* Fondo blanco para el header */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1); /* Updated border */
   transition: background-color 0.2s ease;
 }
 
@@ -288,16 +292,16 @@
 }
 
 .section-icon {
-  width: 44px; /* Ligeramente más pequeño */
-  height: 44px;
-  border-radius: 10px; /* Icono con bordes redondeados */
+  width: 40px; /* Updated width */
+  height: 40px; /* Updated height */
+  border-radius: 8px; /* Updated border radius */
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-color) 100%);
   color: white;
   font-size: 1.3rem; /* Tamaño del icono (si es font icon) */
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .section-title h3 {
@@ -317,7 +321,7 @@
 .section-content {
   overflow: visible; /* Permitir que las sombras de las tarjetas internas se vean */
   background-color: #fdfdfe; /* Un fondo muy sutil para el contenido, casi blanco */
-  padding: 0; /* El padding lo manejará el questions-grid */
+  padding: 1rem; /* Updated padding */
 }
 
 /* Grid de preguntas con ajustes */
@@ -330,21 +334,22 @@
 
 /* Diseño de filas en lugar de tarjetas */
 .question-card {
-  background-color: white;
-  border-radius: 8px;
-  padding: 16px 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid var(--gray-300);
+  background-color: #fff; /* Updated background color */
+  border-radius: 0.375rem; /* Updated border radius */
+  padding: 1rem; /* Updated padding */
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); /* Updated box-shadow */
+  border-left: 3px solid transparent; /* Updated border */
   transition: var(--transition);
   display: flex;
   align-items: center;
   gap: 20px;
   min-height: 70px;
   width: 100%;
+  margin-bottom: 1rem; /* Updated margin */
 }
 
 .question-card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15); /* Updated box-shadow */
   border-color: var(--gray-400);
   transform: translateY(-1px);
 }
@@ -387,17 +392,17 @@ textarea {
 /* Para campos autocompletados */
 .question-card.autocompletado {
   background-color: #f0f7ff;
-  border-left: 4px solid var(--primary-color);
+  border-left-color: var(--primary-color); /* Updated border color */
 }
 
 .question-card.required-answered {
   background-color: #f0fff4;
-  border-left: 4px solid var(--success-color);
+  border-left-color: var(--success-color); /* Updated border color */
 }
 
 .question-card.required-unanswered {
   background-color: #fff5f5;
-  border-left: 4px solid var(--danger-color);
+  border-left-color: var(--danger-color); /* Updated border color */
 }
 
 /* Mejorando la visualización de campos completados/autocompletados */
@@ -408,7 +413,9 @@ textarea {
 
 /* Icono de éxito para campos completados */
 .field-completed .form-control {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2338b2ac' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2348BB78' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E"); /* Updated icon */
+  border-left: 3px solid var(--success-color); /* Updated border color */
+  background-color: rgba(72, 187, 120, 0.05); /* Updated background color */
   background-repeat: no-repeat;
   background-position: right 10px center;
   background-size: 16px;
@@ -424,7 +431,7 @@ textarea {
   font-weight: 700;
   padding: 0.15rem 0.5rem;
   border-radius: 1rem;
-  margin-left: 8px;
+  margin-left: 0.5rem; /* Updated margin */
   vertical-align: middle;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -559,7 +566,9 @@ select {
 .floating-back-button {
   position: fixed;
   bottom: 30px;
-  right: 30px;
+  left: 50%; 
+  transform: translateX(-50%);
+  z-index: 1000;
   width: 50px;
   height: 50px;
   border-radius: 50%;
@@ -572,7 +581,6 @@ select {
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  z-index: 100;
 }
 
 .floating-back-button:hover {
@@ -662,11 +670,11 @@ textarea {
 
 /* Botón de acción más moderno */
 .form-actions {
-  margin-top: 30px;
-  padding: 20px 0;
-  border-top: 1px solid #e2e8f0;
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding: 15px;
+  border-top: 1px solid #dee2e6;
 }
 
 .btn-submit {
@@ -696,32 +704,6 @@ textarea {
   background: linear-gradient(135deg, #a0aec0, #718096);
   cursor: not-allowed;
   opacity: 0.7;
-}
-
-/* Botón para generar PDF */
-.btn-generate-pdf {
-  background-color: #e53e3e;
-  color: white;
-  padding: 10px 16px;
-  border: none;
-  border-radius: 4px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 12px;
-}
-
-.btn-generate-pdf:hover {
-  background-color: #c53030;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.btn-generate-pdf:disabled {
-  background-color: #cbd5e0;
-  cursor: not-allowed;
 }
 
 /* Resumen de campos autocompletados */
@@ -779,13 +761,37 @@ textarea {
     gap: 15px;
     padding: 20px;
   }
-  
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
   .form-sidebar {
-    width: 250px;
+    width: 280px;
+    min-width: 280px;
+    flex-shrink: 0;
+    height: 100vh;
   }
   
   .sidebar-item-text {
-    max-width: 100px;
+    max-width: none;
+    width: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .formulario-manual-container {
+    flex-direction: row;
+  }
+  
+  .form-main-content {
+    flex: 1;
+    overflow-y: auto;
+  }
+  
+  /* Make the Si/No buttons more visible */
+  .sidebar-btn {
+    min-width: 36px;
+    min-height: 28px;
+    font-size: 0.75rem;
   }
 }
 
@@ -824,13 +830,57 @@ textarea {
   }
   
   .form-main-content {
-    padding: 20px 15px;
+    padding: 2px 15px;
+  }
+}
+
+/* Handle form visibility when chat is open on mobile */
+@media (max-width: 767px) {
+  .formulario-manual-container.chat-open {
+    display: none;
+  }
+  
+  /* Improved sidebar handling on smaller screens */
+  .formulario-manual-container {
+    flex-direction: column;
+  }
+  
+  .form-sidebar {
+    width: 100%;
+    height: auto;
+    max-height: 290px;
+    overflow-y: auto;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  
+  .form-main-content {
+    width: 100%;
+    padding: 15px;
+  }
+  
+  .sidebar-item {
+    padding: 10px 10px;
+  }
+  
+  .sidebar-icon-wrapper {
+    margin-right: 8px;
+  }
+  
+  .sidebar-item-text {
+    font-size: 0.9rem;
+  }
+  
+  .sidebar-btn {
+    min-width: 50px;
+    min-height: 45px;
   }
 }
 
 /* Indicador de campos requeridos */
 .required-indicator {
-  color: #dc3545;
+  color: var(--danger-color); /* Updated color */
   margin-left: 4px;
   font-weight: bold;
 }
@@ -843,4 +893,25 @@ textarea {
   font-size: 0.85rem;
   color: #dc3545;
   margin-top: 5px;
+}
+
+/* Professional animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.form-section {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Subtle pulse effect for active buttons */
+@keyframes subtlePulse {
+  0% { box-shadow: 0 0 0 0 rgba(44, 66, 130, 0.4); }
+  70% { box-shadow: 0 0 0 5px rgba(44, 66, 130, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(44, 66, 130, 0); }
+}
+
+.sidebar-btn.active:focus {
+  animation: subtlePulse 1.5s infinite;
 }

@@ -13,7 +13,7 @@ const formatDate = (date, formatType) => {
   const year = date.getFullYear();
   const hours = date.getHours().toString().padStart(2, '0');
   const minutes = date.getMinutes().toString().padStart(2, '0');
-  
+
   switch (formatType) {
     case 'full':
       return `${day}/${month}/${year} ${hours}:${minutes}`;
@@ -85,11 +85,11 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
     if (value === undefined || value === null) return false;
     if (value === '') return false;
     if (Array.isArray(value) && value.length === 0) return false;
-    
+
     if (typeof value === 'string') {
       const lowerValue = value.toLowerCase().trim();
       const defaultValues = [
-        'no se especifica', 
+        'no se especifica',
         '-- selecciona --',
         'no especificado',
         'no disponible',
@@ -100,10 +100,10 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
         'na',
         'no aplica'
       ];
-      
+
       if (defaultValues.includes(lowerValue)) return false;
     }
-    
+
     return true;
   }, []);
 
@@ -130,14 +130,14 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
 
         const datosGeneralesId = 'datos-generales';
         const datosGeneralesSection = formSections.find(s => s.id === datosGeneralesId);
-        
-        const hasGeneralQuestions = datosGeneralesSection && 
-          sortedQuestions.some(q => 
-            datosGeneralesSection.orderRanges.some(range => 
-              q.Orden >= range.min && q.Orden <= range.max) && 
+
+        const hasGeneralQuestions = datosGeneralesSection &&
+          sortedQuestions.some(q =>
+            datosGeneralesSection.orderRanges.some(range =>
+              q.Orden >= range.min && q.Orden <= range.max) &&
             shouldShowQuestion(q)
           );
-        
+
         if (hasGeneralQuestions) {
           setSelectedSectionId(datosGeneralesId);
         } else {
@@ -211,41 +211,41 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
     if (sectionId === 'datos-generales' && status === 'no') {
       return;
     }
-    
+
     const normalizedStatus = status?.toLowerCase();
     console.log(`Section ${sectionId} status changed to: ${normalizedStatus}`);
-    
+
     const newStatuses = {
       ...sectionStatuses,
       [sectionId]: normalizedStatus
     };
     setSectionStatuses(newStatuses);
-    
+
     if (normalizedStatus === 'no') {
       console.log(`Clearing fields for section ${sectionId} marked as 'no'`);
-      
+
       const sectionQuestions = questions.filter(q => {
         const section = formSections.find(s => s.id === sectionId);
         if (!section) return false;
-        
-        return section.orderRanges.some(range => 
+
+        return section.orderRanges.some(range =>
           q.Orden >= range.min && q.Orden <= range.max
         );
       });
-      
-      const cleanedData = {...localFormData};
+
+      const cleanedData = { ...localFormData };
       let fieldsRemoved = false;
-      
+
       sectionQuestions.forEach(q => {
         if (q.IDQuestion && cleanedData[q.IDQuestion] !== undefined) {
           delete cleanedData[q.IDQuestion];
           fieldsRemoved = true;
         }
       });
-      
+
       if (fieldsRemoved) {
         setLocalFormData(cleanedData);
-        
+
         if (onFormChange) {
           const changes = {};
           sectionQuestions.forEach(q => {
@@ -255,7 +255,7 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
         }
       }
     }
-    
+
     if (onSectionStatusChange) {
       onSectionStatusChange(newStatuses);
     }
@@ -264,7 +264,7 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
   const renderField = useCallback((question) => {
     const questionId = question.IDQuestion;
     const rawValue = localFormData[questionId] ?? '';
-    
+
     let value = rawValue;
     if (typeof rawValue === 'string') {
       const lowerValue = rawValue.toLowerCase().trim();
@@ -273,19 +273,19 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
         'no disponible', 'no indicado', 'desconocido',
         'sin especificar', 'n/a', 'na', 'no aplica'
       ];
-      
-      if (defaultValues.includes(lowerValue) || 
-          lowerValue.includes('no mencionado') || 
-          lowerValue.includes('no especificado')) {
+
+      if (defaultValues.includes(lowerValue) ||
+        lowerValue.includes('no mencionado') ||
+        lowerValue.includes('no especificado')) {
         value = '';
       }
     }
-    
+
     const hasRealValue = isFieldCompleted(value);
-    
+
     if (question.Type === 3 && answers[questionId]) {
       const stringValue = value.toString();
-      
+
       return (
         <select
           id={`question-${questionId}`}
@@ -296,8 +296,8 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
         >
           <option value="">-- Selecciona --</option>
           {answers[questionId].map(ans => (
-            <option 
-              key={ans.CodAnswer} 
+            <option
+              key={ans.CodAnswer}
               value={ans.CodAnswer.toString()}
             >
               {ans.Description}
@@ -327,7 +327,7 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
         </div>
       );
     }
-    
+
     return (
       <input
         type="text"
@@ -344,75 +344,75 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
   const generatePDF = useCallback(() => {
     // Crear instancia de jsPDF
     const doc = new jsPDF();
-    
+
     // Configuración de estilo
     const titleFontSize = 18;
     const sectionFontSize = 14;
     const normalFontSize = 10;
-    
+
     // Añadir título y fecha
     doc.setFontSize(titleFontSize);
     doc.setTextColor(44, 82, 130); // RGB equivalente a primaryColor
     doc.text('Resumen de Proyecto Agrícola', 14, 20);
-    
+
     const currentDate = formatDate(new Date(), 'full');
     doc.setFontSize(normalFontSize);
     doc.setTextColor(100);
     doc.text(`Fecha de generación: ${currentDate}`, 14, 30);
     doc.text(`Cliente: ${localFormData['1'] || 'No especificado'}`, 14, 35);
-    
+
     // Línea separadora
     doc.setDrawColor(220);
     doc.line(14, 40, 196, 40);
-    
+
     let yPosition = 50;
-    
+
     // Crear tabla de contenidos
     doc.setFontSize(sectionFontSize);
     doc.setTextColor(44, 82, 130);
     doc.text('Tabla de Contenidos', 14, yPosition);
     yPosition += 10;
-    
+
     // Filtrar secciones aplicables
-    const applicableSections = formSections.filter(section => 
+    const applicableSections = formSections.filter(section =>
       sectionStatuses[section.id] === 'yes' || sectionStatuses[section.id] !== 'no'
     );
-    
+
     // Listar secciones en la tabla de contenidos
     applicableSections.forEach((section, index) => {
       doc.setFontSize(normalFontSize);
       doc.setTextColor(70);
       doc.text(`${index + 1}. ${section.title}`, 20, yPosition);
       yPosition += 7;
-      
+
       if (yPosition > 270) {
         doc.addPage();
         yPosition = 20;
       }
     });
-    
+
     yPosition += 10;
-    
+
     // Para cada sección
     applicableSections.forEach((section, sectionIndex) => {
       if (yPosition > 250) {
         doc.addPage();
         yPosition = 20;
       }
-      
+
       // Título de sección
       doc.setFontSize(sectionFontSize);
       doc.setTextColor(44, 82, 130);
       doc.text(`${sectionIndex + 1}. ${section.title}`, 14, yPosition);
       yPosition += 10;
-      
+
       // Preguntas de esta sección
       const sectionQuestions = questions.filter(q => {
-        return section.orderRanges.some(range => 
+        return section.orderRanges.some(range =>
           q.Orden >= range.min && q.Orden <= range.max
         );
       });
-      
+
       if (sectionQuestions.length === 0) {
         doc.setFontSize(normalFontSize);
         doc.setTextColor(100);
@@ -420,7 +420,7 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
         yPosition += 15;
         return;
       }
-      
+
       // Dibujar encabezados de tabla manualmente
       doc.setFillColor(44, 82, 130);
       doc.rect(14, yPosition, 90, 8, 'F');
@@ -430,20 +430,20 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
       doc.text('Pregunta', 16, yPosition + 5);
       doc.text('Respuesta', 106, yPosition + 5);
       yPosition += 8;
-      
+
       // Variables para alternar colores de fila
       let isAlternateRow = false;
-      
+
       // Listar preguntas y respuestas
       sectionQuestions.forEach(question => {
         const questionId = question.IDQuestion;
         let value = localFormData[questionId];
-        
+
         // Omitir preguntas sin respuesta
         if (value === undefined || value === null || value === '') {
           return;
         }
-        
+
         // Formatear respuestas
         if (question.Type === 3 && answers[questionId]) {
           const selectedOption = answers[questionId].find(
@@ -455,35 +455,35 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
         } else if (question.Type === 10) {
           value = value === true ? 'Sí' : 'No';
         }
-        
+
         // Indicador de autocompletado
         const isAutoCompleted = autocompletados.includes(questionId);
         const autoLabel = isAutoCompleted ? ' [Auto]' : '';
-        
+
         // Dibujar celda con color alternado
         if (isAlternateRow) {
           doc.setFillColor(245, 247, 250);
           doc.rect(14, yPosition, 90, 8, 'F');
           doc.rect(104, yPosition, 90, 8, 'F');
         }
-        
+
         // Texto de pregunta y respuesta
         doc.setTextColor(50);
-        doc.text(`${question.Description}${question.Required ? ' *' : ''}${autoLabel}`, 16, yPosition + 5, { 
-          maxWidth: 85 
+        doc.text(`${question.Description}${question.Required ? ' *' : ''}${autoLabel}`, 16, yPosition + 5, {
+          maxWidth: 85
         });
-        doc.text(value.toString(), 106, yPosition + 5, { 
-          maxWidth: 85 
+        doc.text(value.toString(), 106, yPosition + 5, {
+          maxWidth: 85
         });
-        
+
         yPosition += 8;
         isAlternateRow = !isAlternateRow;
-        
+
         // Nueva página si es necesario
         if (yPosition > 270) {
           doc.addPage();
           yPosition = 20;
-          
+
           // Repetir encabezados de tabla
           doc.setFillColor(44, 82, 130);
           doc.rect(14, yPosition, 90, 8, 'F');
@@ -495,10 +495,10 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
           isAlternateRow = false;
         }
       });
-      
+
       yPosition += 15;
     });
-    
+
     // Añadir pie de página
     const totalPages = doc.internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
@@ -516,27 +516,27 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
         doc.internal.pageSize.height - 10
       );
     }
-    
+
     // Guardar PDF
     const pdfName = `Proyecto_${localFormData['1'] || 'Cliente'}_${formatDate(new Date(), 'filename')}.pdf`;
     doc.save(pdfName);
-    
+
     return pdfName;
   }, [localFormData, questions, sectionStatuses, answers, autocompletados]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const missingRequiredFields = questions
-      .filter(q => q.Required && shouldShowQuestion(q) && 
+      .filter(q => q.Required && shouldShowQuestion(q) &&
         !isFieldCompleted(localFormData[q.IDQuestion]))
       .map(q => q.Description);
-      
+
     if (missingRequiredFields.length > 0) {
       setError(`Por favor complete los siguientes campos obligatorios: ${missingRequiredFields.join(', ')}`);
       return;
     }
-    
+
     setIsLoading(true);
     setError(null);
     try {
@@ -549,14 +549,14 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
 
       console.log("Enviando datos:", dataToSend);
       await enviarRespuestas(dataToSend);
-      
+
       try {
         const pdfName = generatePDF();
         console.log(`PDF generado exitosamente: ${pdfName}`);
       } catch (pdfError) {
         console.error("Error generando el PDF:", pdfError);
       }
-      
+
       setIsSuccess(true);
     } catch (err) {
       console.error("Error al enviar formulario:", err);
@@ -573,14 +573,14 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
     setError(null);
     let firstSectionWithQuestionsId = null;
     for (const section of formSections) {
-        const sectionQuestions = questions.filter(q =>
-            section.orderRanges.some(range => q.Orden >= range.min && q.Orden <= range.max) &&
-            shouldShowQuestion(q)
-        );
-        if (sectionQuestions.length > 0) {
-            firstSectionWithQuestionsId = section.id;
-            break;
-        }
+      const sectionQuestions = questions.filter(q =>
+        section.orderRanges.some(range => q.Orden >= range.min && q.Orden <= range.max) &&
+        shouldShowQuestion(q)
+      );
+      if (sectionQuestions.length > 0) {
+        firstSectionWithQuestionsId = section.id;
+        break;
+      }
     }
     setSelectedSectionId(firstSectionWithQuestionsId);
 
@@ -629,149 +629,138 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
   }
 
   return (
-    <div className="formulario-manual-container">
-      <div className="form-sidebar">
-        <div className="sidebar-header text-center">
-          <h4>Secciones del Formulario</h4>
-        </div>
-        <ul>
-          {formSections.map((section, index) => {
-            const Icon = section.icon;
-            const sectionQuestions = questionsBySections[section.id] || [];
-            const hasQuestions = sectionQuestions.length > 0;
-            
-            if (!hasQuestions) return null;
-            
-            const shouldShowDivider = index > 0 && index % 3 === 0;
-            const sectionStatus = sectionStatuses[section.id];
-            
-            return (
-              <React.Fragment key={section.id}>
-                {shouldShowDivider && <div className="sidebar-divider"></div>}
-                <li
-                  className={`sidebar-item ${selectedSectionId === section.id ? 'active' : ''}`}
-                  onClick={() => setSelectedSectionId(section.id)}
-                  title={section.description}
-                >
-                  <div className="sidebar-item-content">
-                    {Icon && 
-                      <div className="sidebar-icon-wrapper" style={{color: section.color}}>
-                        <Icon className="sidebar-icon" />
+    <div className="container-fluid p-0">
+      <div className="row g-0">
+        {/* Sidebar column */}
+        <div className="col-md-4 col-lg-3 col-xl-3">
+          <div className="form-sidebar">
+            <div className="sidebar-header">
+              <h4>Secciones del Formulario</h4>
+            </div>
+            <ul>
+              {/* Sidebar items */}
+              {formSections.map(section => {
+                const sectionStatus = sectionStatuses[section.id];
+                return (
+                  <li 
+                    key={section.id}
+                    className={`sidebar-item ${selectedSectionId === section.id ? 'active' : ''}`}
+                    onClick={() => setSelectedSectionId(section.id)}
+                  >
+                    <div className="sidebar-item-content">
+                      <div className="sidebar-icon-wrapper">
+                        <section.icon />
                       </div>
-                    }
-                    <span className="sidebar-item-text">
-                      {sectionStatus && (
-                        <span 
-                          className={`section-status-dot ${
-                            sectionStatus === 'yes' ? 'status-completed' : 
-                            sectionStatus === 'no' ? 'status-skipped' : 'status-pending'
-                          }`}
-                        ></span>
-                      )}
-                      {section.title}
-                    </span>
-                  </div>
-                  <div className="sidebar-item-right">
-                    <div className="sidebar-item-actions">
-                      <button
-                        className={`sidebar-btn sidebar-btn-yes ${sectionStatus === 'yes' ? 'active' : ''}`}
+                      <span className="sidebar-item-text">{section.title}</span>
+                    </div>
+                    <div className="sidebar-item-right">
+                      <button 
+                        className={`sidebar-btn ${sectionStatus === 'yes' ? 'active' : ''}`}
                         onClick={(e) => {
-                          e.stopPropagation();
-                          handleSectionStatusChange(section.id, sectionStatus === 'yes' ? null : 'yes');
+                          e.stopPropagation(); // Prevent triggering the li's onClick
+                          handleSectionStatusChange(section.id, 'yes');
                         }}
-                        title="Marcar como completado"
-                        aria-label="Marcar como completado"
                       >
                         Sí
                       </button>
-                      <button
-                        className={`sidebar-btn sidebar-btn-no ${sectionStatus === 'no' ? 'active' : ''}`}
+                      <button 
+                        className={`sidebar-btn ${sectionStatus === 'no' ? 'active' : ''}`}
                         onClick={(e) => {
-                          e.stopPropagation();
-                          handleSectionStatusChange(section.id, sectionStatus === 'no' ? null : 'no');
+                          e.stopPropagation(); // Prevent triggering the li's onClick
+                          handleSectionStatusChange(section.id, 'no');
                         }}
-                        title="Marcar como no aplicable"
-                        aria-label="Marcar como no aplicable"
-                        disabled={section.id === 'datos-generales'}
-                        style={section.id === 'datos-generales' ? 
-                          {opacity: 0.5, cursor: 'not-allowed'} : {}}
+                        disabled={section.id === 'datos-generales'} // Prevent "No" for datos-generales
                       >
                         No
                       </button>
                     </div>
-                    {sectionQuestions.length > 0 && (
-                      <span className="questions-count">{sectionQuestions.length}</span>
-                    )}
-                  </div>
-                </li>
-              </React.Fragment>
-            );
-          })}
-        </ul>
-      </div>
-
-      <div className="form-main-content">
-        <form onSubmit={handleSubmit} className="form-with-sections">
-
-          <div className="form-sections-container">
-            {formSections
-              .filter(section => section.id === selectedSectionId)
-              .map(section => {
-                const sectionQuestions = questionsBySections[section.id] || [];
-                if (sectionQuestions.length === 0) return null;
-
-                return (
-                  <FormSection
-                    key={section.id}
-                    section={section}
-                    questions={sectionQuestions}
-                    formData={localFormData}
-                    renderField={renderField}
-                    isFieldCompleted={isFieldCompleted}
-                    autocompletados={autocompletados}
-                  />
+                  </li>
                 );
               })}
-
-            {selectedSectionId && (questionsBySections[selectedSectionId] || []).length === 0 && (
-              <div className="no-questions">
-                No hay preguntas visibles para la sección seleccionada.
-              </div>
-            )}
-            {!selectedSectionId && !isLoading && (
-              <div className="no-questions">
-                No hay secciones con preguntas disponibles.
-              </div>
-            )}
+            </ul>
           </div>
+        </div>
+        
+        {/* Main content column */}
+        <div className="col-md-8 col-lg-9 col-xl-9">
+          <div className="form-main-content">
+            <form onSubmit={handleSubmit} className="form-with-sections">
+              <div className="form-sections-container">
+                {formSections
+                  .filter(section => section.id === selectedSectionId)
+                  .map(section => {
+                    const sectionQuestions = questionsBySections[section.id] || [];
+                    if (sectionQuestions.length === 0) return null;
 
-          <div className="form-actions">
-            <button
-              type="submit"
-              className="btn-submit"
-              disabled={isLoading || !selectedSectionId || (questionsBySections[selectedSectionId] || []).length === 0}
-            >
-              {isLoading ? 'Enviando...' : 'Enviar Formulario'}
-            </button>
-            
-            <button
-              type="button"
-              className="btn-generate-pdf"
-              onClick={() => generatePDF()}
-              disabled={isLoading}
-            >
-              Generar Resumen PDF
-            </button>
+                    return (
+                      <div className="form-section" key={section.id}>
+                        <div className="section-header d-flex align-items-center justify-content-between">
+                          <div className="d-flex align-items-center">
+                            <div className="section-icon me-3">
+                              <section.icon />
+                            </div>
+                            <div>
+                              <h4 className="mb-1">{section.title}</h4>
+                              <p className="text-muted mb-0">{section.description}</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="section-content">
+                          <FormSection
+                            section={section}
+                            questions={sectionQuestions}
+                            formData={localFormData}
+                            renderField={renderField}
+                            isFieldCompleted={isFieldCompleted}
+                            autocompletados={autocompletados}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                {selectedSectionId && (questionsBySections[selectedSectionId] || []).length === 0 && (
+                  <div className="no-questions">
+                    No hay preguntas visibles para la sección seleccionada.
+                  </div>
+                )}
+                {!selectedSectionId && !isLoading && (
+                  <div className="no-questions">
+                    No hay secciones con preguntas disponibles.
+                  </div>
+                )}
+              </div>
+
+              <div className="form-actions d-flex justify-content-between mt-4">
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-lg"
+                  disabled={isLoading || !selectedSectionId || (questionsBySections[selectedSectionId] || []).length === 0}
+                >
+                  {isLoading ? 'Enviando...' : 'Enviar Formulario'}
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-outline-primary btn-lg"
+                  onClick={() => generatePDF()}
+                  disabled={isLoading}
+                >
+                  Generar Resumen PDF
+                </button>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       </div>
 
       {showBackToTop && (
-        <button 
+        <button
           type="button"
-          className="floating-back-button"
+          className="btn btn-primary rounded-circle position-fixed"
+          style={{ bottom: '30px', right: '30px', width: '50px', height: '50px' }}
           onClick={() => {
-            const firstSection = formSections.find(s => 
+            const firstSection = formSections.find(s =>
               questionsBySections[s.id] && questionsBySections[s.id].length > 0
             );
             if (firstSection) {
@@ -780,7 +769,7 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
             }
           }}
         >
-          <FaArrowUp /> <span>Inicio</span>
+          <FaArrowUp />
         </button>
       )}
     </div>

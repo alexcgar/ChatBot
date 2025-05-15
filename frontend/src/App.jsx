@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import FormularioManual from './components/FormularioManual/FormularioManual';
 import ChatBot from './components/Chatbot/ChatBot';
 import { fetchPreguntas } from './services/api';
@@ -9,10 +9,10 @@ import { FaRobot, FaTimes } from 'react-icons/fa';
 import './components/ChatButton/ChatButton.css';
 
 // Componente para el botón de chat
-const ChatButton = ({ onClick, isOpen }) => {
+const ChatButton = ({ onClick, isOpen, className }) => {
   return (
     <button 
-      className="chat-button" 
+      className={`chat-button ${className}`} 
       onClick={onClick}
       aria-label={isOpen ? "Cerrar asistente" : "Abrir asistente"}
       title={isOpen ? "Cerrar asistente" : "Abrir asistente"}
@@ -30,6 +30,7 @@ function App() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [autoCompletedFields, setAutoCompletedFields] = useState([]);
   const [sectionStatuses, setSectionStatuses] = useState({});
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 767);
 
   useEffect(() => {
     const loadQuestions = async () => {
@@ -49,15 +50,28 @@ function App() {
       }
     };
     loadQuestions();
+
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 767);
+    };
+    window.addEventListener('resize', handleResize);
+    
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Función para alternar el estado del chat con debug
   const toggleChat = () => {
     console.log("Toggling chat, current state:", isChatOpen);
     setIsChatOpen(prevState => !prevState);
+    
+    if (isMobile) {
+      if (!isChatOpen) {
+        document.body.style.overflow = 'hidden';
+      } else {
+        document.body.style.overflow = '';
+      }
+    }
   };
 
-  // Efecto para verificar cambios en el estado del chat
   useEffect(() => {
     console.log("Chat open state changed to:", isChatOpen);
   }, [isChatOpen]);
@@ -83,27 +97,23 @@ function App() {
         onFormChange={(newData) => setFormData({...formData, ...newData})}
         autocompletados={autoCompletedFields}
         onSectionStatusChange={setSectionStatuses}
+        className={isMobile && isChatOpen ? 'hidden' : ''}
       />
       
-      {/* ChatBot siempre renderizado, pero con visibilidad controlada */}
-      <div className={`chatbot-container ${isChatOpen ? 'visible' : 'hidden'}`}>
+      <div className={`chatbot-container ${isChatOpen ? 'visible' : 'hidden'} ${isMobile ? 'mobile-container' : ''}`}>
         <ChatBot 
           questions={questions}
           onUpdateFormData={(newData, autoCompleted) => {
             console.log("Actualizando formData desde ChatBot:", newData);
-            // Usar una función de actualización para evitar problemas de estados antiguos
             setFormData(prevData => {
               const updatedData = { ...prevData, ...newData };
               console.log("Nuevo estado formData:", updatedData);
               return updatedData;
             });
             
-            // Actualizar campos autocompletados
             if (autoCompleted && autoCompleted.length > 0) {
               console.log(`Se autocompletaron ${autoCompleted.length} campos:`, autoCompleted);
-              // Actualizar la lista de campos autocompletados
               setAutoCompletedFields(prevFields => {
-                // Combinar los campos existentes con los nuevos, evitando duplicados
                 const allFields = [...prevFields];
                 autoCompleted.forEach(field => {
                   if (!allFields.includes(field)) {
@@ -118,13 +128,14 @@ function App() {
           onClose={toggleChat}
           isVisible={isChatOpen}
           sectionStatuses={sectionStatuses}
+          isMobile={isMobile}
         />
       </div>
       
-      {/* Botón de chat mejorado */}
       <ChatButton 
         onClick={toggleChat} 
         isOpen={isChatOpen} 
+        className={isMobile ? 'mobile-button' : ''}
       />
     </div>
   );
