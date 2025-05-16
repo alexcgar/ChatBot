@@ -1,8 +1,8 @@
+/* eslint-disable no-unused-vars */
 import { useState, useEffect } from 'react';
 import FormularioManual from './components/FormularioManual/FormularioManual';
 import ChatBot from './components/Chatbot/ChatBot';
 import { fetchPreguntas } from './services/api';
-import { AnimatePresence} from 'framer-motion';
 import { FaRobot, FaTimes } from 'react-icons/fa';
 import './App.css';
 
@@ -101,41 +101,33 @@ function App() {
         onSectionStatusChange={setSectionStatuses}
       />
       
-      <AnimatePresence>
-        {isChatOpen && (
-          <motion.div 
-            className={`chatbot-container ${isMobile ? 'mobile' : ''}`}
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            transition={{ duration: 0.3 }}
-          >
-            <ChatBot 
-              questions={questions}
-              onUpdateFormData={(newData, autoCompleted) => {
-                setFormData(prev => ({...prev, ...newData}));
-                
-                if (autoCompleted && autoCompleted.length > 0) {
-                  setAutoCompletedFields(prev => {
-                    const allFields = [...prev];
-                    autoCompleted.forEach(field => {
-                      if (!allFields.includes(field)) {
-                        allFields.push(field);
-                      }
-                    });
-                    return allFields;
+      {isChatOpen && (
+        
+          <ChatBot 
+            questions={questions}
+            onUpdateFormData={(newData, autoCompleted) => {
+              setFormData(prev => ({...prev, ...newData}));
+              
+              if (autoCompleted && autoCompleted.length > 0) {
+                setAutoCompletedFields(prev => {
+                  const allFields = [...prev];
+                  autoCompleted.forEach(field => {
+                    if (!allFields.includes(field)) {
+                      allFields.push(field);
+                    }
                   });
-                }
-              }}
-              formData={formData}
-              onClose={toggleChat}
-              isVisible={isChatOpen}
-              sectionStatuses={sectionStatuses}
-              isMobile={isMobile}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  return allFields;
+                });
+              }
+            }}
+            formData={formData}
+            onClose={toggleChat}
+            isVisible={isChatOpen}
+            sectionStatuses={sectionStatuses}
+            isMobile={isMobile}
+          />
+        
+      )}
       
       <ChatButton 
         onClick={toggleChat} 

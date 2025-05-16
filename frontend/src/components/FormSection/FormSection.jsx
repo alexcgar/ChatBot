@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './FormSection.css';
+// eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion';
 import { FaInfoCircle, FaCheckCircle, FaExclamationCircle, FaRegLightbulb } from 'react-icons/fa';
 
