@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './Navbar.css';
-import logo from '../../assets/logo.svg';
+import logo from '../../assets/novaLogo.png';
 import { FaBars, FaUserCircle, FaQuestion, FaBell } from 'react-icons/fa';
 
-const Navbar = ({ toggleSidebar }) => {
+const Navbar = ({ toggleSidebar, className = '' }) => {
   const [scrolled, setScrolled] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -11,8 +11,10 @@ const Navbar = ({ toggleSidebar }) => {
     const handleScroll = () => {
       if (window.scrollY > 10) {
         setScrolled(true);
+        document.body.classList.add('scrolled');
       } else {
         setScrolled(false);
+        document.body.classList.remove('scrolled');
       }
     };
 
@@ -21,10 +23,12 @@ const Navbar = ({ toggleSidebar }) => {
     }, 60000); // Update every minute
 
     window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Check initial scroll position
     
     return () => {
       window.removeEventListener('scroll', handleScroll);
       clearInterval(timeInterval);
+      document.body.classList.remove('scrolled');
     };
   }, []);
 
@@ -42,9 +46,9 @@ const Navbar = ({ toggleSidebar }) => {
   };
 
   return (
-    <nav className={`navbar ${scrolled ? 'navbar-scrolled' : ''}`}>
-      <div className="navbar-container ">
-        <div className="navbar-left ">
+    <nav className={`navbar ${scrolled ? 'navbar-scrolled' : ''} ${className}`}>
+      <div className="navbar-container">
+        <div className="navbar-left">
           <button className="sidebar-toggle" onClick={toggleSidebar} aria-label="Toggle Sidebar">
             <FaBars />
           </button>
@@ -54,7 +58,7 @@ const Navbar = ({ toggleSidebar }) => {
         </div>
         
         <div className="navbar-center">
-          <div className="navbar-title">Hoja de Toma de Datos</div>
+          <div className="navbar-title"></div>
           <div className="navbar-subtitle">
             <div className="navbar-date">{formatDate(currentTime)}</div>
             <div className="navbar-time">{formatTime(currentTime)}</div>

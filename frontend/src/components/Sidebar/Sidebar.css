@@ -1,10 +1,9 @@
 /* Sidebar Styles */
 .sidebar {
   position: fixed;
-  top: 70px;
   bottom: 0;
   left: 0;
-  width: 280px;
+  width: 320px;
   background-color: #ffffff;
   box-shadow: 3px 0 10px rgba(0, 0, 0, 0.05);
   z-index: 900;
@@ -12,14 +11,11 @@
   flex-direction: column;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+  top: 0;
 }
 
 .sidebar-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 899;
   opacity: 0;
@@ -66,7 +62,7 @@
   top: 70px;
   bottom: 0;
   left: 0;
-  width: 60px;
+  
   background-color: #ffffff;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
   z-index: 900;
@@ -142,7 +138,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.8rem 1rem;
+  padding: 1.006rem 1rem;
   cursor: pointer;
   border-left: 3px solid transparent;
   transition: all 0.2s ease;
@@ -162,7 +158,8 @@
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  max-width: 160px;
+  max-width: calc(100% - 60px);
+  flex: 1;
 }
 
 .sidebar-icon {
@@ -189,9 +186,10 @@
   font-size: 0.9rem;
   font-weight: 500;
   color: #2d3748;
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.2;
+  white-space: normal;
 }
 
 /* Status indicators */
@@ -224,7 +222,8 @@
 .sidebar-actions {
   display: flex;
   gap: 0.5rem;
-  margin-left: auto;
+  margin-left: 0.5rem;
+  flex-shrink: 0;
 }
 
 .action-btn {
@@ -237,6 +236,8 @@
   background-color: #f7fafc;
   border: 1px solid #e2e8f0;
   color: #4a5568;
+  min-width: 35px;
+  text-align: center;
 }
 
 .action-btn:hover:not(:disabled) {
@@ -269,8 +270,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 49px;
+  height: 47px;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -361,8 +362,8 @@
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .sidebar {
-    top: 60px;
-    width: 240px;
+    top: 70px;
+    width: 260px;
   }
   
   .mini-sidebar {
@@ -376,6 +377,7 @@
   
   .sidebar-item {
     padding: 0.7rem 0.8rem;
+    flex-wrap: wrap;
   }
   
   .sidebar-icon {

@@ -73,7 +73,7 @@ const Sidebar = ({
                     <span className="sidebar-icon">
                       <Icon />
                     </span>
-                    <span className="sidebar-label">{section.title}</span>
+                    <span className="sidebar-label" title={section.title}>{section.title}</span>
                   </div>
                   
                   {(isOpen || hoverSection === section.id) && (

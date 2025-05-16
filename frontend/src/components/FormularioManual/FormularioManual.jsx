@@ -632,15 +632,14 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
   }
 
   const mainContentStyle = {
-    marginLeft: sidebarOpen ? '280px' : '60px',
+    marginLeft: sidebarOpen ? '300px' : '60px',
     transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    marginTop: '70px',
     padding: '2rem',
   };
 
   return (
     <div className="app-container">
-      <Navbar toggleSidebar={toggleSidebar} />
+      <Navbar toggleSidebar={toggleSidebar} className="navbar-form" />
       
       <Sidebar 
         isOpen={sidebarOpen}

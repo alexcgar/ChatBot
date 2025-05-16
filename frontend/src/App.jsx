@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import FormularioManual from './components/FormularioManual/FormularioManual';
 import ChatBot from './components/Chatbot/ChatBot';
 import { fetchPreguntas } from './services/api';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence} from 'framer-motion';
 import { FaRobot, FaTimes } from 'react-icons/fa';
 import './App.css';
 

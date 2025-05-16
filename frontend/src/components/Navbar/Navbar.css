@@ -6,17 +6,16 @@
   z-index: 1000;
   background-color: #ffffff;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  height: 70px;
+  height: 65px;
   display: flex;
   align-items: center;
   padding: 0 1rem;
   transition: all 0.3s ease;
-  top: 0;
+  width: 100%;
 }
 
 .navbar-scrolled {
   box-shadow: 0 2px 15px rgba(0, 0, 0, 0.15);
-  height: 60px;
   background-color: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
 }
@@ -99,7 +98,7 @@
 }
 
 .navbar-logo {
-  height: 35px;
+  height: 45px;
   margin-right: 0.5rem;
   transition: transform 0.3s ease;
 }
@@ -215,4 +214,23 @@
 
 .navbar {
   animation: fadeIn 0.4s ease-out;
+}
+
+/* Clase específica para navbar en formulario */
+.navbar-form {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+}
+
+/* Añadir espacio para el contenido debajo del navbar */
+body {
+  padding-top: 70px; /* Mismo valor que la altura del navbar */
+}
+
+/* Ajustar el padding cuando el navbar es más pequeño al hacer scroll */
+body.scrolled {
+  padding-top: 60px; /* Mismo valor que la altura del navbar-scrolled */
 } 

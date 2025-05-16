@@ -57,12 +57,14 @@ button {
   width: 100%;
   background-color: #f4f7f9;
   min-height: calc(100vh - 70px);
+  margin-top: 0;
+  padding-top: 0;
 }
 
 .form-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0 3rem;
 }
 
 .form-with-sections {
