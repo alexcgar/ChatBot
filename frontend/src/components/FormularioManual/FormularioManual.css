@@ -54,17 +54,19 @@ button {
 
 /* --- Principal --- */
 .main-content {
-  width: 100%;
+  /* width: 100%; */ /* Removed: Conflicts with margin-left */
   background-color: #f4f7f9;
-  min-height: calc(100vh - 70px);
+  min-height: calc(100vh - 65px);
   margin-top: 0;
   padding-top: 0;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Added */
+  position: relative; /* Added */
 }
 
 .form-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 3rem;
+  padding: 2rem 3rem;
 }
 
 .form-with-sections {
@@ -75,21 +77,23 @@ button {
 
 /* --- Sección de formulario --- */
 .section-header {
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--gray-200);
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background-color: #f9fafb;
+  border-radius: var(--radius-md);
 }
 
 .section-title {
-  font-size: 1.75rem;
+  font-size: 1.6rem;
   font-weight: 700;
-  color: var(--gray-800);
-  margin-bottom: 0.5rem;
+  color: var(--primary-dark);
+  margin-bottom: 0.25rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .section-description {
-  font-size: 1rem;
-  color: var(--gray-500);
+  font-size: 0.95rem;
+  color: var(--gray-600);
 }
 
 /* --- Estados de la aplicación --- */
@@ -277,6 +281,15 @@ button {
   cursor: not-allowed;
 }
 
+/* Added styles for content shifting with sidebar */
+.main-content.content-shifted { /* Full sidebar open */
+  margin-left: 320px; /* Default (desktop) width of expanded sidebar */
+}
+
+.main-content.content-full { /* Full sidebar collapsed, mini-sidebar showing */
+  margin-left: 60px; /* Default (desktop) width of mini-sidebar */
+}
+
 /* --- Sin preguntas --- */
 .no-questions {
   text-align: center;
@@ -342,7 +355,15 @@ button {
   }
   
   .main-content {
-    margin-left: 0 !important;
+    /* margin-left: 0 !important; */ /* Removed this specific override, handled by new classes */
+  }
+
+  /* Adjustments for main-content margins based on sidebar state at 768px */
+  .main-content.content-shifted { /* Sidebar width becomes 260px */
+    margin-left: 260px;
+  }
+  .main-content.content-full { /* Mini-sidebar width becomes 50px */
+     margin-left: 50px;
   }
 }
 
@@ -356,7 +377,15 @@ button {
   }
   
   .form-container {
-    padding: 0 0.5rem;
+    padding: 0 0.5rem; /* Keep this if it's for internal padding of form on small screens */
+  }
+
+  /* Adjustments for main-content margins based on sidebar state at 576px */
+  .main-content.content-shifted { /* Full sidebar is 280px */
+    margin-left: 280px;
+  }
+  .main-content.content-full { /* Full sidebar slides out, mini-sidebar is display:none */
+    margin-left: 0;
   }
 }
 

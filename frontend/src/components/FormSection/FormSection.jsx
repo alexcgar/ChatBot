@@ -7,23 +7,18 @@ import { FaInfoCircle, FaCheckCircle, FaExclamationCircle, FaRegLightbulb } from
 const FormSection = ({ questions, formData, renderField, isFieldCompleted, autocompletados }) => {
   const [showTooltip, setShowTooltip] = useState(null);
   const [completedCount, setCompletedCount] = useState(0);
-  const [requiredMissingCount, setRequiredMissingCount] = useState(0);
 
   useEffect(() => {
-    // Calculate completed fields and required missing fields
+    // Calculate completed fields
     let completed = 0;
-    let requiredMissing = 0;
 
     questions.forEach(question => {
       if (isFieldCompleted(formData[question.IDQuestion])) {
         completed++;
-      } else if (question.Required) {
-        requiredMissing++;
       }
     });
 
     setCompletedCount(completed);
-    setRequiredMissingCount(requiredMissing);
   }, [questions, formData, isFieldCompleted]);
 
   // Calculate completion percentage
@@ -68,14 +63,6 @@ const FormSection = ({ questions, formData, renderField, isFieldCompleted, autoc
                 className="progress-fill" 
                 style={{ width: `${completionPercentage}%` }}
               ></div>
-            </div>
-            <div className="progress-stats">
-              <span className="progress-percentage">{completionPercentage}% completado</span>
-              {requiredMissingCount > 0 && (
-                <span className="missing-required">
-                  <FaExclamationCircle /> {requiredMissingCount} campos requeridos pendientes
-                </span>
-              )}
             </div>
           </div>
         </div>

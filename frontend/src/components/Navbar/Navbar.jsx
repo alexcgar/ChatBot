@@ -4,31 +4,15 @@ import logo from '../../assets/novaLogo.png';
 import { FaBars, FaUserCircle, FaQuestion, FaBell } from 'react-icons/fa';
 
 const Navbar = ({ toggleSidebar, className = '' }) => {
-  const [scrolled, setScrolled] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 10) {
-        setScrolled(true);
-        document.body.classList.add('scrolled');
-      } else {
-        setScrolled(false);
-        document.body.classList.remove('scrolled');
-      }
-    };
-
     const timeInterval = setInterval(() => {
       setCurrentTime(new Date());
     }, 60000); // Update every minute
 
-    window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Check initial scroll position
-    
     return () => {
-      window.removeEventListener('scroll', handleScroll);
       clearInterval(timeInterval);
-      document.body.classList.remove('scrolled');
     };
   }, []);
 
@@ -46,7 +30,7 @@ const Navbar = ({ toggleSidebar, className = '' }) => {
   };
 
   return (
-    <nav className={`navbar ${scrolled ? 'navbar-scrolled' : ''} ${className}`}>
+    <nav className={`navbar ${className}`}>
       <div className="navbar-container">
         <div className="navbar-left">
           <button className="sidebar-toggle" onClick={toggleSidebar} aria-label="Toggle Sidebar">

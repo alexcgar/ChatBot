@@ -445,7 +445,7 @@ if __name__ == "__main__":
     from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption
 
     # Ajusta esta ruta a donde esté tu .pfx en Linux
-    pfx_path = "backend\novagric-2026.pfx" 
+    pfx_path = "./novagric-2026.pfx" 
     # "/home/practicas-ti/ChatBot/backend/novagric-2026.pfx"
     # Reemplaza con la ruta real en tu sistema Linux
     pfx_password = "2j70m86a9"

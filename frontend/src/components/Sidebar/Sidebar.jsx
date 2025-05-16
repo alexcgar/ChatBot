@@ -100,8 +100,6 @@ const Sidebar = ({
                       </button>
                     </div>
                   )}
-                  
-                  <div className={`status-indicator ${status}`}></div>
                 </li>
               );
             })}
@@ -109,21 +107,6 @@ const Sidebar = ({
         </div>
         
         <div className="sidebar-footer">
-          <div className="completion-status">
-            <div className="completion-progress">
-              <div className="progress-bar">
-                <div 
-                  className="progress-fill" 
-                  style={{ 
-                    width: `${Object.values(sectionStatuses).filter(status => status === 'yes' || status === 'no').length / formSections.length * 100}%` 
-                  }}
-                ></div>
-              </div>
-              <div className="progress-text">
-                {Math.round(Object.values(sectionStatuses).filter(status => status === 'yes' || status === 'no').length / formSections.length * 100)}% Completado
-              </div>
-            </div>
-          </div>
         </div>
       </aside>
       
@@ -144,7 +127,6 @@ const Sidebar = ({
                   <span className="mini-sidebar-icon">
                     <Icon />
                   </span>
-                  <div className={`status-dot ${status}`}></div>
                 </li>
               );
             })}

@@ -2,7 +2,7 @@ import {
   FaWarehouse, FaWater, FaShieldAlt, FaWind, 
   FaArchway, FaFilter, FaTint, FaFlask, 
   FaTractor, FaSeedling, FaLeaf,
-  FaBaby,
+  FaHome,
   FaTelegram
 } from 'react-icons/fa';
 
@@ -31,6 +31,16 @@ export const formSections = [
     orderRanges: [{ min: 7, max: 58 }],
     expanded: false,
     idFirstQuestion: "a3c6c678-3a65-495e-b36f-f345ca8e1af4"
+  },
+    {
+    id: 'casamalla',
+    title: 'Casamalla',
+    description: 'Estructuras de malla y protección',
+    icon: FaHome,
+    color: '#f39c12', // Color naranja para diferenciarla
+    orderRanges: [{ min: 58.1, max: 59.7 }],
+    expanded: false,
+    idFirstQuestion: null // Se deberá establecer cuando esté disponible
   },
   {
     id: 'pantallas',
