@@ -64,6 +64,9 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
       }
     };
 
+    // Comprobar la posición inicial del scroll
+    handleScroll();
+    
     window.addEventListener('scroll', handleScroll);
     return () => {
       window.removeEventListener('scroll', handleScroll);
@@ -707,6 +710,7 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
           type="button"
           className="back-to-top"
           onClick={scrollToTop}
+          title="Volver arriba"
         >
           <FaArrowUp />
         </button>

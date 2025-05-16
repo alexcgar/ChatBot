@@ -293,7 +293,7 @@ button {
 .back-to-top {
   position: fixed;
   bottom: 2rem;
-  right: 2rem;
+  right: 9rem;
   width: 50px;
   height: 50px;
   border-radius: 50%;
@@ -306,7 +306,9 @@ button {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transition: var(--transition-normal);
   opacity: 0.9;
-  z-index: 800;
+  z-index: 950;
+  cursor: pointer;
+  font-size: 1.2rem;
 }
 
 .back-to-top:hover {
