@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import './FormularioManual.css';
 import { fetchPreguntas, enviarRespuestas } from '../../services/api';
-import FormSection from './FormSection';
+import FormSection from '../FormSection/FormSection';
 import { formSections } from './sectionConfig';
-import { FaArrowUp } from 'react-icons/fa';
+import { FaArrowUp, FaRegFilePdf } from 'react-icons/fa';
 import { jsPDF } from 'jspdf';
+import Navbar from '../Navbar/Navbar';
+import Sidebar from '../Sidebar/Sidebar';
 
 // Función de utilidad para formatear fechas sin dependencias externas
 const formatDate = (date, formatType) => {
@@ -40,7 +42,12 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
     });
     return initialStatuses;
   });
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+  
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
@@ -591,15 +598,16 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
 
   if (isLoading && questions.length === 0) {
     return (
-      <div className="form-loading-container">
-        <div className="loading-spinner blue-spinner"></div>
+      <div className="app-loading">
+        <div className="loading-spinner"></div>
+        <p>Cargando formulario...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="form-error-container">
+      <div className="app-error">
         <div className="error-icon">⚠️</div>
         <h3>Error en el formulario</h3>
         <p>{error}</p>
@@ -612,162 +620,94 @@ function FormularioManual({ formData = {}, onFormChange, autocompletados = [], o
 
   if (isSuccess) {
     return (
-      <motion.div
-        className="form-success-container"
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-      >
+      <div className="app-success">
         <div className="success-icon">✓</div>
         <h2>¡Formulario enviado con éxito!</h2>
         <p>Gracias por completar el formulario.</p>
         <button onClick={resetForm} className="btn-primary">
           Completar otro formulario
         </button>
-      </motion.div>
+      </div>
     );
   }
 
+  const mainContentStyle = {
+    marginLeft: sidebarOpen ? '280px' : '60px',
+    transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    marginTop: '70px',
+    padding: '2rem',
+  };
+
   return (
-    <div className="container-fluid p-0">
-      <div className="row g-0">
-        {/* Sidebar column */}
-        <div className="col-md-4 col-lg-3 col-xl-3">
-          <div className="form-sidebar">
-            <div className="sidebar-header">
-              <h4>Secciones del Formulario</h4>
+    <div className="app-container">
+      <Navbar toggleSidebar={toggleSidebar} />
+      
+      <Sidebar 
+        isOpen={sidebarOpen}
+        toggleSidebar={toggleSidebar}
+        selectedSectionId={selectedSectionId}
+        setSelectedSectionId={setSelectedSectionId}
+        sectionStatuses={sectionStatuses}
+        handleSectionStatusChange={handleSectionStatusChange}
+      />
+      
+      <main style={mainContentStyle} className="main-content">
+        <div className="form-container">
+          <form onSubmit={handleSubmit} className="form-with-sections">
+            {selectedSectionId && questionsBySections[selectedSectionId] && questionsBySections[selectedSectionId].length > 0 ? (
+              <>
+                <div className="section-header">
+                  <h2 className="section-title">
+                    {formSections.find(s => s.id === selectedSectionId)?.title || 'Sección'}
+                  </h2>
+                  <p className="section-description">
+                    {formSections.find(s => s.id === selectedSectionId)?.description || ''}
+                  </p>
+                </div>
+                
+                <FormSection
+                  questions={questionsBySections[selectedSectionId]}
+                  formData={localFormData}
+                  renderField={renderField}
+                  isFieldCompleted={isFieldCompleted}
+                  autocompletados={autocompletados}
+                />
+              </>
+            ) : (
+              <div className="no-questions">
+                {selectedSectionId ? 
+                  'No hay preguntas disponibles para esta sección.' : 
+                  'Por favor seleccione una sección del formulario.'}
+              </div>
+            )}
+
+            <div className="form-actions">
+              <button
+                type="submit"
+                className="btn-submit"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Enviando...' : 'Enviar Formulario'}
+              </button>
+
+              <button
+                type="button"
+                className="btn-outline"
+                onClick={generatePDF}
+                disabled={isLoading}
+              >
+                <FaRegFilePdf /> Generar PDF
+              </button>
             </div>
-            <ul>
-              {/* Sidebar items */}
-              {formSections.map(section => {
-                const sectionStatus = sectionStatuses[section.id];
-                return (
-                  <li 
-                    key={section.id}
-                    className={`sidebar-item ${selectedSectionId === section.id ? 'active' : ''}`}
-                    onClick={() => setSelectedSectionId(section.id)}
-                  >
-                    <div className="sidebar-item-content">
-                      <div className="sidebar-icon-wrapper">
-                        <section.icon />
-                      </div>
-                      <span className="sidebar-item-text">{section.title}</span>
-                    </div>
-                    <div className="sidebar-item-right">
-                      <button 
-                        className={`sidebar-btn ${sectionStatus === 'yes' ? 'active' : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent triggering the li's onClick
-                          handleSectionStatusChange(section.id, 'yes');
-                        }}
-                      >
-                        Sí
-                      </button>
-                      <button 
-                        className={`sidebar-btn ${sectionStatus === 'no' ? 'active' : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent triggering the li's onClick
-                          handleSectionStatusChange(section.id, 'no');
-                        }}
-                        disabled={section.id === 'datos-generales'} // Prevent "No" for datos-generales
-                      >
-                        No
-                      </button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+          </form>
         </div>
-        
-        {/* Main content column */}
-        <div className="col-md-8 col-lg-9 col-xl-9">
-          <div className="form-main-content">
-            <form onSubmit={handleSubmit} className="form-with-sections">
-              <div className="form-sections-container">
-                {formSections
-                  .filter(section => section.id === selectedSectionId)
-                  .map(section => {
-                    const sectionQuestions = questionsBySections[section.id] || [];
-                    if (sectionQuestions.length === 0) return null;
-
-                    return (
-                      <div className="form-section" key={section.id}>
-                        <div className="section-header d-flex align-items-center justify-content-between">
-                          <div className="d-flex align-items-center">
-                            <div className="section-icon me-3">
-                              <section.icon />
-                            </div>
-                            <div>
-                              <h4 className="mb-1">{section.title}</h4>
-                              <p className="text-muted mb-0">{section.description}</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="section-content">
-                          <FormSection
-                            section={section}
-                            questions={sectionQuestions}
-                            formData={localFormData}
-                            renderField={renderField}
-                            isFieldCompleted={isFieldCompleted}
-                            autocompletados={autocompletados}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                {selectedSectionId && (questionsBySections[selectedSectionId] || []).length === 0 && (
-                  <div className="no-questions">
-                    No hay preguntas visibles para la sección seleccionada.
-                  </div>
-                )}
-                {!selectedSectionId && !isLoading && (
-                  <div className="no-questions">
-                    No hay secciones con preguntas disponibles.
-                  </div>
-                )}
-              </div>
-
-              <div className="form-actions d-flex justify-content-between mt-4">
-                <button
-                  type="submit"
-                  className="btn btn-primary btn-lg"
-                  disabled={isLoading || !selectedSectionId || (questionsBySections[selectedSectionId] || []).length === 0}
-                >
-                  {isLoading ? 'Enviando...' : 'Enviar Formulario'}
-                </button>
-
-                <button
-                  type="button"
-                  className="btn btn-outline-primary btn-lg"
-                  onClick={() => generatePDF()}
-                  disabled={isLoading}
-                >
-                  Generar Resumen PDF
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
+      </main>
 
       {showBackToTop && (
         <button
           type="button"
-          className="btn btn-primary rounded-circle position-fixed"
-          style={{ bottom: '30px', right: '30px', width: '50px', height: '50px' }}
-          onClick={() => {
-            const firstSection = formSections.find(s =>
-              questionsBySections[s.id] && questionsBySections[s.id].length > 0
-            );
-            if (firstSection) {
-              setSelectedSectionId(firstSection.id);
-              scrollToTop();
-            }
-          }}
+          className="back-to-top"
+          onClick={scrollToTop}
         >
           <FaArrowUp />
         </button>

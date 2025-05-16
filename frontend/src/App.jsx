@@ -2,11 +2,9 @@ import { useState, useEffect } from 'react';
 import FormularioManual from './components/FormularioManual/FormularioManual';
 import ChatBot from './components/Chatbot/ChatBot';
 import { fetchPreguntas } from './services/api';
-// eslint-disable-next-line no-unused-vars
 import { AnimatePresence, motion } from 'framer-motion';
 import { FaRobot, FaTimes } from 'react-icons/fa';
-// Import only the component-specific styles
-import './components/ChatButton/ChatButton.css';
+import './App.css';
 
 // Componente para el botón de chat
 const ChatButton = ({ onClick, isOpen, className }) => {
@@ -60,8 +58,7 @@ function App() {
   }, []);
 
   const toggleChat = () => {
-    console.log("Toggling chat, current state:", isChatOpen);
-    setIsChatOpen(prevState => !prevState);
+    setIsChatOpen(prev => !prev);
     
     if (isMobile) {
       if (!isChatOpen) {
@@ -72,65 +69,73 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    console.log("Chat open state changed to:", isChatOpen);
-  }, [isChatOpen]);
-
-  if (isLoading) {
+  if (isLoading && questions.length === 0) {
     return (
-      <div className="text-center mt-5">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Cargando...</span>
-        </div>
+      <div className="app-loading">
+        <div className="loading-spinner"></div>
+        <p>Cargando aplicación...</p>
       </div>
     );
   }
+  
   if (error) {
-    return <div className="alert alert-danger mt-5">{error}</div>;
+    return (
+      <div className="app-error">
+        <div className="error-icon">⚠️</div>
+        <h3>Error en la aplicación</h3>
+        <p>{error}</p>
+        <button onClick={() => window.location.reload()} className="btn-retry">
+          Intentar de nuevo
+        </button>
+      </div>
+    );
   }
 
   return (
-    <div className="app-container">
+    <div className="app-root">
       <FormularioManual 
         formData={formData} 
         questions={questions}
         onFormChange={(newData) => setFormData({...formData, ...newData})}
         autocompletados={autoCompletedFields}
         onSectionStatusChange={setSectionStatuses}
-        className={isMobile && isChatOpen ? 'hidden' : ''}
       />
       
-      <div className={`chatbot-container ${isChatOpen ? 'visible' : 'hidden'} ${isMobile ? 'mobile-container' : ''}`}>
-        <ChatBot 
-          questions={questions}
-          onUpdateFormData={(newData, autoCompleted) => {
-            console.log("Actualizando formData desde ChatBot:", newData);
-            setFormData(prevData => {
-              const updatedData = { ...prevData, ...newData };
-              console.log("Nuevo estado formData:", updatedData);
-              return updatedData;
-            });
-            
-            if (autoCompleted && autoCompleted.length > 0) {
-              console.log(`Se autocompletaron ${autoCompleted.length} campos:`, autoCompleted);
-              setAutoCompletedFields(prevFields => {
-                const allFields = [...prevFields];
-                autoCompleted.forEach(field => {
-                  if (!allFields.includes(field)) {
-                    allFields.push(field);
-                  }
-                });
-                return allFields;
-              });
-            }
-          }}
-          formData={formData}
-          onClose={toggleChat}
-          isVisible={isChatOpen}
-          sectionStatuses={sectionStatuses}
-          isMobile={isMobile}
-        />
-      </div>
+      <AnimatePresence>
+        {isChatOpen && (
+          <motion.div 
+            className={`chatbot-container ${isMobile ? 'mobile' : ''}`}
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ChatBot 
+              questions={questions}
+              onUpdateFormData={(newData, autoCompleted) => {
+                setFormData(prev => ({...prev, ...newData}));
+                
+                if (autoCompleted && autoCompleted.length > 0) {
+                  setAutoCompletedFields(prev => {
+                    const allFields = [...prev];
+                    autoCompleted.forEach(field => {
+                      if (!allFields.includes(field)) {
+                        allFields.push(field);
+                      }
+                    });
+                    return allFields;
+                  });
+                }
+              }}
+              formData={formData}
+              onClose={toggleChat}
+              isVisible={isChatOpen}
+              sectionStatuses={sectionStatuses}
+              isMobile={isMobile}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       <ChatButton 
         onClick={toggleChat} 
